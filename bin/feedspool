@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+"""Simple command-line driver script for FeedSpool."""
+import os, os.path, sys
+###########################################################################
+# HACK: Orient self with paths to local modules and config files
+self_path  = os.path.abspath(os.path.dirname(sys.argv[0]))
+parent_dir = os.path.join(self_path, os.path.pardir)
+sys.path.append(os.path.join(parent_dir, 'lib'))
+sys.path.append(os.path.join(parent_dir, os.path.pardir, 'lib'))
+###########################################################################
+import feedspool.cli
+if __name__ == '__main__': feedspool.cli.main()
