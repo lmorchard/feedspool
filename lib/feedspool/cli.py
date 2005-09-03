@@ -10,6 +10,26 @@ import feedspool
 
 ##########################################################################
 
+def cmd_spool():
+    """Spool a feed file|"""
+    import xml.sax
+    from xml.sax.handler  import ContentHandler
+    from xml.sax.saxutils import XMLFilterBase
+    from feedspool import subscriptions
+    from feedspool.feedspooler import FeedSpooler, XMLGenerator
+
+    feed_uri = args[0]
+    try:
+        from feedspool import subscriptions
+        sl = subscriptions.SubscriptionsList()
+        sub = sl.get(feed_uri)
+
+        spooler = FeedSpooler(sub)
+        spooler.spool()
+
+    except subscriptions.SubscriptionNotFoundException, e:
+        log.error("No subscription found for %s" % args[0])        
+
 def cmd_hello():
     """Hello World|"""
     print "Hello world!"

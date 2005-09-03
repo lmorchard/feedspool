@@ -12,6 +12,11 @@ from md5 import md5
 from cStringIO import StringIO
 import feedspool, opml
 from feedspool import config
+from feedspool.feedspooler import FeedSpooler
+from TimeRotatingFileHandler import TimeRotatingFileHandler
+
+# TODO: Per-feed configurable logging levels?  Other config.
+# TODO: Don't hardcode the TimeRotatingFileHandler in per-feed logs.
 
 global log
 log  = logging.getLogger("%s"%__name__)
@@ -39,20 +44,27 @@ class Subscription:
         self.uri     = uri
         self.uid     = md5(uri).hexdigest()
         self.path    = os.path.join(self.spool_path, self.uid)
-        self.meta_fn = os.path.join(self.path, 'meta')
         self.feed_fn = os.path.join(self.path, 'feed.xml')
 
+        self.log_debug_hnd = None
+        self.log_hnd       = None
+
+        self.loadMeta()
+
+    def loadMeta(self):
+        """Load up the subscription's metadata."""
+        self.meta_fn = os.path.join(self.path, 'meta')
         if os.path.isfile(self.meta_fn):
             # Load up the metadata for the subscription.
             self.meta = Parser().parse(open(self.meta_fn, 'r'))
         else:
             # Initialize new metadata if none found.
-            self.log.debug("Initializing metadata for %s" % uri)
+            self.log.debug("Initializing metadata for %s" % self.uri)
             self.meta = Message()
 
             # Set some basic metadata values
-            self.meta['URI']           = self.uri
-            self.meta['UID']           = self.uid
+            self.meta['URI'] = self.uri
+            self.meta['UID'] = self.uid
 
             # Set the beginning datestamps.
             self.meta['Last-Scanned']  = ISO_NEVER
@@ -83,71 +95,136 @@ class Subscription:
         open(self.meta_fn, 'w').write(self.meta.as_string())
 
     def scan(self):
-        """ """
-        # HACK: Pre-save to ensure directories created
-        self.save()
+        """Scan the subscribed feed for any updates, spool new entries."""
+        self.startLogging()
+        self.save() # HACK: Pre-save to ensure directories created
 
-        # Bump the last scan timestamp.
-        now = now_ISO()
-        self['Last-Scanned'] = now
+        try:
+            # Bump the last scan timestamp.
+            now = now_ISO()
+            self['Last-Scanned'] = now
 
-        # Is it time for the next poll?
-        if now > self['Next-Poll']:
-            self.log.debug("Polling %s" % self.uri)
+            # Is it time for the next poll?
+            if now > self['Next-Poll']:
+                self['Last-Polled'] = now
+                self.log.debug("Polling %s" % self.uri)
 
-            # Bump the last polled timestamp.
-            self['Last-Polled'] = now
+                found_new_entries = False
+                try:
+                    # Has the feed content changed?
+                    if self.fetch():
 
-            found_new_entries = False
-            try:
-                # Grab the feed data via HTTPCache
-                cache     = HTTPCache(self.uri)
-                info      = cache.info()
-                content   = cache.content()
-                feed_hash = md5(content).hexdigest()
+                        # Spool the entries found in the feed.
+                        self.log.debug("\tSpooling entries.")
+                        spooler = FeedSpooler(self)
+                        spooler.spool()
 
-                # Copy over some HTTP headers as feed metadata
-                if 'ETag' in info: 
-                    self['HTTP-ETag'] = info['ETag']
-                if 'Last-Modified' in info:
-                    self['HTTP-Last-Modified'] = info['Last-Modified']
+                        # If found new entries, flip the flag.
+                        new_entries = spooler.getNewEntryPaths()
+                        if len(new_entries) > 0:
+                            found_new_entries = True
+                            self.log.debug("\tFound %s new entries." % \
+                                len(new_entries))
 
-                # Has the feed content changed?
-                #if not cache.fresh():
-                if not feed_hash == self['Last-Feed-MD5']:
-                    log.debug("Content has changed!")
-                    self['Last-Feed-MD5'] = feed_hash
-                    open(self.feed_fn, 'w').write(content)
+                except KeyboardInterrupt: raise
+                except Exception, e:
+                    self.log.exception("Problem while polling %s" % self.uri)
 
-            except Exception, e:
-                self.log.exception("Problem while polling %s" % self.uri)
+                # Tweak the update period and schedule the next poll.
+                update_period = self.updatePollingPeriod(found_new_entries)
+                self.scheduleNextPoll()
 
-            # Grab the current update period.
-            update_period = int(self['Current-Update-Period'])
+        finally:
+            # Save any changes to the subscription, stop logging.
+            self.save()
+            self.stopLogging()
 
-            if found_new_entries:
-                # If there were new entries, try ramping up the update freq.
-                ramp_up_factor    = float(self['Update-Ramp-Up-Factor'])
-                new_update_period = int(update_period * ramp_up_factor)
+    def fetch(self):
+        """Fetch the data for the feed, return whether feed has changed."""
+        # Grab the feed data via HTTPCache
+        cache     = HTTPCache(self.uri)
+        info      = cache.info()
+        content   = cache.content()
+        feed_hash = md5(content).hexdigest()
 
-            else:
-                # If there weren't new entries, try backing off the update freq.
-                back_off_period   = float(self['Update-Back-Off-Period'])
-                new_update_period = int(update_period + back_off_period)
+        # Copy over some HTTP headers as feed metadata
+        if 'ETag' in info: 
+            self['HTTP-ETag'] = info['ETag']
+        if 'Last-Modified' in info:
+            self['HTTP-Last-Modified'] = info['Last-Modified']
 
-            # Constrain the new update period to the min/max range.
-            min_period = int(self['Min-Update-Period'])
-            max_period = int(self['Max-Update-Period'])
-            update_period = \
-                max(min_period, min(max_period, new_update_period))
+        #changed = cache.fresh()
+        changed = (not feed_hash == self['Last-Feed-MD5'])
+        if changed:
+            # Update the feed hash, write the fetched feed.
+            self['Last-Feed-MD5'] = feed_hash
+            open(self.feed_fn, 'w').write(content)
 
-            # Schedule the next poll from now.
-            next_poll = now_datetime() + timedelta(seconds=update_period)
-            self['Next-Poll'] = datetime2ISO(next_poll)
-            self['Current-Update-Period'] = str(update_period)
+        return changed
 
-        # Save any changes.
-        self.save()
+    def updatePollingPeriod(self, found_new_entries):
+        """Update the polling period, based on finding new entries."""
+        update_period = int(self['Current-Update-Period'])
+
+        if found_new_entries:
+            # If there were new entries, try ramping up the update freq.
+            ramp_up_factor    = float(self['Update-Ramp-Up-Factor'])
+            new_update_period = int(update_period * ramp_up_factor)
+
+        else:
+            # If there weren't new entries, try backing off the update freq.
+            back_off_period   = float(self['Update-Back-Off-Period'])
+            new_update_period = int(update_period + back_off_period)
+
+        # Constrain the new update period to the min/max range.
+        min_period = int(self['Min-Update-Period'])
+        max_period = int(self['Max-Update-Period'])
+        update_period = \
+            max(min_period, min(max_period, new_update_period))
+
+        # Save the new period and return the value.
+        self['Current-Update-Period'] = str(update_period)
+        return update_period
+
+    def scheduleNextPoll(self):
+        """Schedule the next future poll based on update period."""
+        update_period = int(self['Current-Update-Period'])
+        next_poll = now_datetime() + timedelta(seconds=update_period)
+        self['Next-Poll'] = datetime2ISO(next_poll)
+
+    def startLogging(self):
+        """Start writing to the per-feed log."""
+        # Ensure the per-feed log path exists
+        self.log_path = os.path.join(self.path, 'logs')
+        if not os.path.isdir(self.log_path):
+            os.mkdir(self.log_path, 0777)
+
+        log = logging.getLogger("")
+        fmt = logging.Formatter\
+            ('[%(asctime)s %(levelname)s %(name)s] %(message)s', 
+             '%Y-%m-%dT%H:%M:%S')  
+        
+        log_debug_fn  = os.path.join(self.log_path, '%Y%m%d-debug.log')
+        log_debug_hnd = TimeRotatingFileHandler(log_debug_fn)
+        log_debug_hnd.setLevel(logging.DEBUG)
+        log_debug_hnd.setFormatter(fmt)
+        self.log_debug_hnd = log_debug_hnd
+        log.addHandler(self.log_debug_hnd)
+
+        log_fn  = os.path.join(self.log_path, '%Y%m%d.log')
+        log_hnd = TimeRotatingFileHandler(log_fn)
+        log_hnd.setLevel(logging.INFO)
+        log_hnd.setFormatter(fmt)
+        self.log_hnd = log_hnd
+        log.addHandler(self.log_hnd)
+
+    def stopLogging(self):
+        """Stop writing to the per-feed log."""
+        log = logging.getLogger("")
+        if self.log_debug_hnd is not None:
+            log.removeHandler(self.log_debug_hnd)
+        if self.log_hnd is not None:
+            log.removeHandler(self.log_hnd)
 
     # HACK: Somewhat dirty way to pass through mapping interface for meta
     def __setitem__(self, name, val): 
@@ -165,10 +242,10 @@ class Subscription:
     def get(self, name, default): return self.meta.get(name, default)
 
 class SubscriptionsList:
-    """ """
+    """Managed list of subscriptions."""
     # TODO: Optimization - exists(uri) method?
+
     def __init__(self, subs_list_fn=None):
-        """ """
         self.log = logging.getLogger("%s"%self.__class__.__name__)
         self.subs_list_fn = \
             config.alt('data', 'subscriptions', 
