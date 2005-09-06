@@ -12,7 +12,7 @@ from md5 import md5
 from cStringIO import StringIO
 import feedspool, opml
 from feedspool import config
-from feedspool.feedspooler import FeedSpooler
+from feedspool.spooler import Spooler
 from TimeRotatingFileHandler import TimeRotatingFileHandler
 
 # TODO: Per-feed configurable logging levels?  Other config.
@@ -116,7 +116,7 @@ class Subscription:
 
                         # Spool the entries found in the feed.
                         self.log.debug("\tSpooling entries.")
-                        spooler = FeedSpooler(self)
+                        spooler = Spooler(self)
                         spooler.spool()
 
                         # If found new entries, flip the flag.
@@ -158,7 +158,9 @@ class Subscription:
         if changed:
             # Update the feed hash, write the fetched feed.
             self['Last-Feed-MD5'] = feed_hash
-            open(self.feed_fn, 'w').write(content)
+            fout = open(self.feed_fn, 'w')
+            fout.write(content)
+            fout.close()
 
         return changed
 
@@ -221,10 +223,16 @@ class Subscription:
     def stopLogging(self):
         """Stop writing to the per-feed log."""
         log = logging.getLogger("")
+        
         if self.log_debug_hnd is not None:
             log.removeHandler(self.log_debug_hnd)
+            self.log_debug_hnd.close()
+            self.log_debug_hnd = None
+
         if self.log_hnd is not None:
             log.removeHandler(self.log_hnd)
+            self.log_hnd.close()
+            self.log_hnd = None
 
     # HACK: Somewhat dirty way to pass through mapping interface for meta
     def __setitem__(self, name, val): 
