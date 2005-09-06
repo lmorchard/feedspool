@@ -25,11 +25,25 @@ class TimeRotatingFileHandler(logging.FileHandler):
         logging.FileHandler.__init__(self, self.filename, mode)
         #os.chmod(self.filename, 0664)
 
+        self.stream = None
+
+    def __del__(self):
+        """
+        Clean up after ourselves.
+        """
+        self.close()
+
+    def close(self):
+        if self.stream is not None:
+            self.stream.close()
+
     def doRollover(self, new_filename):
         """
         Given a new filename, close the current stream and open a new one.
         """
-        self.stream.close()
+        if not self.stream is None:
+            self.stream.close()
+            del self.stream
         self.filename = new_filename
         self.stream   = open(self.filename, "w")
         #os.chmod(self.filename, 0664)
@@ -41,7 +55,7 @@ class TimeRotatingFileHandler(logging.FileHandler):
         """
         # Check to see if we need a new timestamped filename
         new_filename = time.strftime(self.filename_tmpl)        
-        if self.filename != new_filename:
+        if self.filename != new_filename or self.stream is None:
             self.doRollover(new_filename)
         logging.FileHandler.emit(self, record)
 
