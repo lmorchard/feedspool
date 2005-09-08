@@ -4,6 +4,12 @@ import sys, os, time, logging, logging.config, ConfigParser
 import TimeRotatingFileHandler
 import socket; socket.setdefaulttimeout(300)
 
+META_FN       = 'meta.subscription'
+FEED_FULL_FN  = 'full.feed'
+FEED_HEAD_FN  = 'head.feed'
+ENTRIES_DIR   = 'entries'
+ENTRY_FN_TMPL = '%s.entry'
+
 def configure(conf_fn="conf/feedspool.conf"):
     """Read in the config file and initialize a few things."""
     global config, log, main_log, db_uri, so_conn, db_conn
