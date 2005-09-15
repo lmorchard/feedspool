@@ -44,7 +44,7 @@ class Subscription:
         self.uri     = uri
         self.uid     = md5(uri).hexdigest()
         self.path    = os.path.join(self.spool_path, self.uid)
-        self.feed_fn = os.path.join(self.path, 'feed.xml')
+        self.feed_fn = os.path.join(self.path, config.FEED_FULL_FN)
 
         self.log_debug_hnd = None
         self.log_hnd       = None
@@ -53,7 +53,7 @@ class Subscription:
 
     def loadMeta(self):
         """Load up the subscription's metadata."""
-        self.meta_fn = os.path.join(self.path, 'meta')
+        self.meta_fn = os.path.join(self.path, config.META_FN)
         if os.path.isfile(self.meta_fn):
             # Load up the metadata for the subscription.
             self.meta = Parser().parse(open(self.meta_fn, 'r'))
@@ -89,7 +89,7 @@ class Subscription:
         if not os.path.isdir(self.path):
             log.debug("Creating new subscription spool path: %s" % self.path)
             os.mkdir(self.path, 0777)
-            os.mkdir(os.path.join(self.path, 'entries'), 0777)
+            os.mkdir(os.path.join(self.path, config.ENTRIES_DIR), 0777)
 
         # Save the subscription metadata
         open(self.meta_fn, 'w').write(self.meta.as_string())
