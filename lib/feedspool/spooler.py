@@ -53,10 +53,11 @@ class SpoolerFilter(XMLFilterBase):
 
     # Supported known feed entry namespace / entry pairs.
     ENTRY_ELEMENTS = [
-        ( None,                          'item' ),
-        ( 'http://purl.org/rss/1.0/',    'item' ),
-        ( 'http://purl.org/atom/ns#',    'entry' ),
-        ( 'http://www.w3.org/2005/Atom', 'entry' ),
+        ( 'http://my.netscape.com/rdf/simple/0.9/',  'item'  ),
+        ( 'http://purl.org/rss/1.0/',                'item'  ),
+        ( None,                                      'item'  ),
+        ( 'http://purl.org/atom/ns#',                'entry' ),
+        ( 'http://www.w3.org/2005/Atom',             'entry' ),
     ]
 
     def __init__(self, parent, head_xg, subscription, entries_root):
