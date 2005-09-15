@@ -27,13 +27,13 @@ class Spooler:
         """ """
         sub  = self.subscription
 
-        head_fn   = os.path.join(sub.path, "head.xml")
+        head_fn   = os.path.join(sub.path, config.FEED_HEAD_FN)
         head_fout = open(head_fn, 'w')
         head_xg   = XMLGenerator(head_fout)
 
         parser    = xml.sax.make_parser()
         spooler   = SpoolerFilter(parser, head_xg, sub,
-            os.path.join(sub.path, "entries") )
+            os.path.join(sub.path, config.ENTRIES_DIR) )
 
         fin  = open(sub.feed_fn, 'r')
         spooler.parse(fin)
@@ -117,7 +117,7 @@ class SpoolerFilter(XMLFilterBase):
                 os.makedirs(entry_path, 0777)
 
             # Write out the entry data to a spool file, with hash-based name.
-            entry_fn = os.path.join(entry_path, "%s.xml" % entry_hash)
+            entry_fn = os.path.join(entry_path, config.ENTRY_FN_TMPL % entry_hash)
             if not os.path.exists(entry_fn):
                 entry_fout = open(entry_fn, 'w')
                 entry_fout.write(entry_src)
