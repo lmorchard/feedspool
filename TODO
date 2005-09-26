@@ -1,0 +1,12 @@
+TODO
+
+* Plugin hooks: Feed scanned; new entry found.
+* Don't automatically include min/max update period and vary parameters in config, but obey as override when found.
+* Switch from funky email module usage in per-feed configs to ConfigParser
+
+BLUE SKY
+
+* Perform feed scans on ping-o-matic-style RPC ping, supported by web service
+* Perform feed scans on PubSub notification / weblogs.com notice
+* Perform feed scans on Jabber IM ping
+
