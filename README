@@ -1,8 +1,8 @@
-FeedSpool
-=========
+= FeedSpool =
 
-Overview
---------
+Simplified syndication feed poller and spooler written in Python.
+
+== Background ==
 
 The basic idea of FeedSpool is to handle many of the up-front details of 
 syndication feed aggregation, while being as stupid as possible about the
@@ -22,9 +22,9 @@ And one last thing:  In order to make this thing easy to get up and running,
 you shouldn't need to install anything other than Python and this package.
 Dependency on non-core Python modules will be avoided as much as possible.
 
-* Subscription management
-* Poll scheduling
-* Conditional HTTP GET
-* Feed data caching (via HTTPCache?)
-* Entry spools from sliced up feeds
+  * Subscription management
+  * Poll scheduling
+  * Conditional HTTP GET
+  * Feed data caching (via HTTPCache?)
+  * Entry spools from sliced up feeds
 
