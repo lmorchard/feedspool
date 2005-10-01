@@ -2,18 +2,16 @@
 """
 import sys, os, os.path, time, logging, traceback, feedfinder
 from datetime import datetime, timedelta
-from timezones import utc
-import isodate
-from email.Message import Message
-from email.Parser import Parser
-from email.Utils import formatdate, parsedate
-from httpcache import HTTPCache
 from md5 import md5
 from cStringIO import StringIO
-import feedspool, opml
+from timezones import utc
+import isodate
+from httpcache import HTTPCache
+import opml
 from feedspool import config
 from feedspool.spooler import Spooler
 from TimeRotatingFileHandler import TimeRotatingFileHandler
+from OverlayConfigParser import OverlayConfigParser
 
 # TODO: Per-feed configurable logging levels?  Other config.
 # TODO: Don't hardcode the TimeRotatingFileHandler in per-feed logs.
@@ -53,35 +51,30 @@ class Subscription:
 
     def loadMeta(self):
         """Load up the subscription's metadata."""
+        self.meta = OverlayConfigParser(parent=config.config)
         self.meta_fn = os.path.join(self.path, config.META_FN)
+
         if os.path.isfile(self.meta_fn):
             # Load up the metadata for the subscription.
-            self.meta = Parser().parse(open(self.meta_fn, 'r'))
+            self.meta.read(self.meta_fn)
+        
         else:
             # Initialize new metadata if none found.
             self.log.debug("Initializing metadata for %s" % self.uri)
-            self.meta = Message()
+            self.meta.add_section('scan')
 
             # Set some basic metadata values
-            self.meta['URI'] = self.uri
-            self.meta['UID'] = self.uid
+            self.meta.set('scan', 'uri', self.uri)
+            self.meta.set('scan', 'uid', self.uid)
 
             # Set the beginning datestamps.
-            self.meta['Last-Scanned']  = ISO_NEVER
-            self.meta['Last-Polled']   = ISO_NEVER
-            self.meta['Next-Poll']     = ISO_NEVER
-            self.meta['Last-Updated']  = ISO_NEVER
+            self.meta.set('scan', 'last_scanned', ISO_NEVER)
+            self.meta.set('scan', 'last_polled',  ISO_NEVER)
+            self.meta.set('scan', 'last_updated', ISO_NEVER)
+            self.meta.set('scan', 'next_poll',    ISO_NEVER)
 
             # Set the default scanning parameters.
-            self.meta['Current-Update-Period'] = "600"
-            self.meta['Update-Ramp-Up-Factor'] = \
-                config.alt('scan', 'update_ramp_up_factor', '0.5')
-            self.meta['Update-Back-Off-Period'] = \
-                config.alt('scan', 'update_back_off_period', '1800')
-            self.meta['Min-Update-Period'] = \
-                config.alt('scan', 'min_update_period', '3600')
-            self.meta['Max-Update-Period'] = \
-                config.alt('scan', 'max_update_period', '86400')
+            self.meta.set('scan', 'current_update_period', '600')
 
     def save(self):
         """Save changes to the subscription."""
@@ -92,7 +85,7 @@ class Subscription:
             os.mkdir(os.path.join(self.path, config.ENTRIES_DIR), 0777)
 
         # Save the subscription metadata
-        open(self.meta_fn, 'w').write(self.meta.as_string())
+        self.meta.write(open(self.meta_fn, 'w'))
 
     def scan(self):
         """Scan the subscribed feed for any updates, spool new entries."""
@@ -102,11 +95,11 @@ class Subscription:
         try:
             # Bump the last scan timestamp.
             now = now_ISO()
-            self['Last-Scanned'] = now
+            self.meta.set('scan', 'last_scanned', now)
 
             # Is it time for the next poll?
-            if now > self['Next-Poll']:
-                self['Last-Polled'] = now
+            if now > self.meta.get('scan', 'next_poll'):
+                self.meta.set('scan', 'last_polled', now)
                 self.log.debug("Polling %s" % self.uri)
 
                 found_new_entries = False
@@ -123,6 +116,7 @@ class Subscription:
                         new_entries = spooler.getNewEntryPaths()
                         if len(new_entries) > 0:
                             found_new_entries = True
+                            self.meta.set('scan', 'last_updated', now)
                             self.log.debug("\tFound %s new entries." % \
                                 len(new_entries))
 
@@ -149,15 +143,16 @@ class Subscription:
 
         # Copy over some HTTP headers as feed metadata
         if 'ETag' in info: 
-            self['HTTP-ETag'] = info['ETag']
+            self.meta.set('scan', 'http_etag', info['ETag'])
         if 'Last-Modified' in info:
-            self['HTTP-Last-Modified'] = info['Last-Modified']
+            self.meta.set('scan', 'http_last_modified', info['Last-Modified'])
 
         #changed = cache.fresh()
-        changed = (not feed_hash == self['Last-Feed-MD5'])
+        changed = ( not self.meta.has_option('scan', 'last_feed_md5') or \
+                    not feed_hash == self.meta.get('scan', 'last_feed_md5') )
         if changed:
             # Update the feed hash, write the fetched feed.
-            self['Last-Feed-MD5'] = feed_hash
+            self.meta.set('scan', 'last_feed_md5', feed_hash)
             fout = open(self.feed_fn, 'w')
             fout.write(content)
             fout.close()
@@ -166,33 +161,33 @@ class Subscription:
 
     def updatePollingPeriod(self, found_new_entries):
         """Update the polling period, based on finding new entries."""
-        update_period = int(self['Current-Update-Period'])
+        update_period = self.meta.getint('scan', 'current_update_period')
 
         if found_new_entries:
             # If there were new entries, try ramping up the update freq.
-            ramp_up_factor    = float(self['Update-Ramp-Up-Factor'])
+            ramp_up_factor    = self.meta.getfloat('scan', 'update_ramp_up_factor')
             new_update_period = int(update_period * ramp_up_factor)
 
         else:
             # If there weren't new entries, try backing off the update freq.
-            back_off_period   = float(self['Update-Back-Off-Period'])
+            back_off_period   = self.meta.getfloat('scan', 'update_back_off_period')
             new_update_period = int(update_period + back_off_period)
 
         # Constrain the new update period to the min/max range.
-        min_period = int(self['Min-Update-Period'])
-        max_period = int(self['Max-Update-Period'])
+        min_period = self.meta.getint('scan', 'min_update_period')
+        max_period = self.meta.getint('scan', 'max_update_period')
         update_period = \
             max(min_period, min(max_period, new_update_period))
 
         # Save the new period and return the value.
-        self['Current-Update-Period'] = str(update_period)
+        self.meta.set('scan', 'current_update_period', str(update_period))
         return update_period
 
     def scheduleNextPoll(self):
         """Schedule the next future poll based on update period."""
-        update_period = int(self['Current-Update-Period'])
+        update_period = self.meta.getint('scan', 'current_update_period')
         next_poll = now_datetime() + timedelta(seconds=update_period)
-        self['Next-Poll'] = datetime2ISO(next_poll)
+        self.meta.set('scan', 'next_poll', datetime2ISO(next_poll))
 
     def startLogging(self):
         """Start writing to the per-feed log."""
@@ -233,21 +228,6 @@ class Subscription:
             log.removeHandler(self.log_hnd)
             self.log_hnd.close()
             self.log_hnd = None
-
-    # HACK: Somewhat dirty way to pass through mapping interface for meta
-    def __setitem__(self, name, val): 
-        del self.meta[name]
-        self.meta[name] = val
-    def __getitem__(self, name): return self.meta.__getitem__(name)
-    def __delitem__(self, name): return self.meta.__delitem__(name)
-
-    def __len__(self, name): return self.meta.__len__()
-    def __contains__(self, name): return self.meta.__contains__(name)
-    def has_key(self, name): return self.meta.has_key(name)
-    def keys(self): return self.meta.keys()
-    def values(self): return self.meta.values()
-    def items(self): return self.meta.items()
-    def get(self, name, default): return self.meta.get(name, default)
 
 class SubscriptionsList:
     """Managed list of subscriptions."""
@@ -371,6 +351,7 @@ class SubscriptionsList:
         for sub in subs:
             feed = sub.feed
 
+            # TODO: Make this work.  Currently broken.
             o = opml.Outline()
             o['text']        = feed.title
             o['description'] = feed.description

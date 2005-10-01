@@ -1,10 +1,11 @@
 """Configure various shared things, including logging."""
-import sys, os, time, logging, logging.config, ConfigParser
+import sys, os, time, logging, logging.config
 
+from ConfigParser import SafeConfigParser as ConfigParser
 import TimeRotatingFileHandler
 import socket; socket.setdefaulttimeout(300)
 
-META_FN       = 'meta.subscription'
+META_FN       = 'subscription.conf'
 FEED_FULL_FN  = 'full.feed'
 FEED_HEAD_FN  = 'head.feed'
 ENTRIES_DIR   = 'entries'
@@ -15,7 +16,7 @@ def configure(conf_fn="conf/feedspool.conf"):
     global config, log, main_log, db_uri, so_conn, db_conn
     
     # Read in config file
-    config = ConfigParser.ConfigParser()
+    config = ConfigParser()
     config.read(conf_fn)
     data_root = alt('data', 'root', 'data')
 

@@ -1,11 +1,24 @@
 TODO
 
-* Plugin hooks: Feed scanned; new entry found.
-* Don't automatically include min/max update period and vary parameters in config, but obey as override when found.
-* Switch from funky email module usage in per-feed configs to ConfigParser
+* Plugin hooks:
+    * Executable files in plugin dir structure (keep it unixy / djb-esque)
+        * Offer examples where little scripts use pipes to talk to a bigger persistent process
+            * Need pipe locking?
+    * Called single-process for poll start/end; multi-process for others.
+    * Hooks
+        * Poll started
+        * Feed poll start
+            * Only on changed data?
+        * New entry found
+        * Feed poll end
+        * Poll ended
+
+* Multi-process feed polling
+    * Process locks feed config to "claim" it for poll
 
 BLUE SKY
 
+* Offer an HTTP proxy which serves up feeds from the spool?
 * Perform feed scans on ping-o-matic-style RPC ping, supported by web service
 * Perform feed scans on PubSub notification / weblogs.com notice
 * Perform feed scans on Jabber IM ping
