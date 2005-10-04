@@ -6,15 +6,17 @@ TODO
             * Need pipe locking?
     * Called single-process for poll start/end; multi-process for others.
     * Hooks
-        * Poll started
+        * Scan started
         * Feed poll start
             * Only on changed data?
         * New entry found
         * Feed poll end
-        * Poll ended
+        * Scan ended
 
 * Multi-process feed polling
     * Process locks feed config to "claim" it for poll
+
+* See about using per-feed overlay config for setting up per-channel logging
 
 BLUE SKY
 

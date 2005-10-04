@@ -1,7 +1,6 @@
-"""Command-line interface to FeedSpool
-"""
+"""Command-line interface to FeedSpool"""
 
-import os, os.path, sys, logging, logging.config, ConfigParser, re
+import os, os.path, sys, logging, logging.config, ConfigParser, re, atexit
 from cStringIO import StringIO
 from optparse import OptionParser
 from datetime import datetime, timedelta
@@ -13,10 +12,15 @@ import feedspool
 def cmd_hello():
     """Hello World|"""
     print "Hello world!"
-    log.debug("Greeted the user")
+
+    from feedspool.config import plugin_manager
+    plugin_manager.dispatch("hello")
 
 def cmd_scan():
     """Perform a polling scan of all subscribed feeds.|"""
+    from feedspool.config import plugin_manager
+    plugin_manager.dispatch("scan_start")
+
     from feedspool import subscriptions
     sl = subscriptions.SubscriptionsList()
     for sub in sl.list(): 
@@ -27,6 +31,8 @@ def cmd_scan():
         except Exception, e:
             log.exception("Problem while scanning %s" % sub.uri)
 
+    plugin_manager.dispatch("scan_end")
+
 def cmd_info():
     """Display metadata about a subscribed feed|<feed URI>"""
     feed_uri = args[0]
@@ -34,8 +40,7 @@ def cmd_info():
         from feedspool import subscriptions
         sl = subscriptions.SubscriptionsList()
         sub = sl.get(feed_uri)
-        for k,v in sub.items():
-            log.info("%s: %s" % (k, v))
+        sub.meta.write(sys.stdout)
     except subscriptions.SubscriptionNotFoundException, e:
         log.error("No subscription found for %s" % args[0])        
 
@@ -171,6 +176,11 @@ def main():
         log.error("No such command '%s'" % cmd)
         parser.print_help()
         sys.exit(1)
+
+    # Fire off the startup event, register for shutdown
+    from feedspool.config import plugin_manager
+    plugin_manager.dispatch("startup")
+    atexit.register(lambda: plugin_manager.dispatch("shutdown"))
 
     # Execute the chosen command
     try:

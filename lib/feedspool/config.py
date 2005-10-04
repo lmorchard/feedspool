@@ -1,9 +1,11 @@
 """Configure various shared things, including logging."""
-import sys, os, time, logging, logging.config
+import sys, os, time, logging, logging.config, atexit
 
 from ConfigParser import SafeConfigParser as ConfigParser
 import TimeRotatingFileHandler
 import socket; socket.setdefaulttimeout(300)
+
+from feedspool.plugins import PluginManager
 
 META_FN       = 'subscription.conf'
 FEED_FULL_FN  = 'full.feed'
@@ -13,11 +15,18 @@ ENTRY_FN_TMPL = '%s.entry'
 
 def configure(conf_fn="conf/feedspool.conf"):
     """Read in the config file and initialize a few things."""
-    global config, log, main_log, db_uri, so_conn, db_conn
+    global config, log, main_log, db_uri, so_conn, db_conn, plugin_manager
     
     # Read in config file
     config = ConfigParser()
     config.read(conf_fn)
+
+    # Set up logging
+    logging.config.fileConfig(conf_fn)
+    log      = logging.getLogger("%s"%__name__)
+    main_log = logging.getLogger("")
+
+    # Set up some app-wide settings & instances
     data_root = alt('data', 'root', 'data')
 
     # HACK: Coerce HTTPCache to stuff things away in our data directory
@@ -26,10 +35,9 @@ def configure(conf_fn="conf/feedspool.conf"):
     if not os.path.exists(httpcache.cacheSubDir__):
         os.mkdir(httpcache.cacheSubDir__)
 
-    # Set up logging
-    logging.config.fileConfig(conf_fn)
-    log      = logging.getLogger("%s"%__name__)
-    main_log = logging.getLogger("")
+    # Load up plugins
+    plugins_root = alt('global', 'plugins', 'plugins')
+    plugin_manager = PluginManager(plugins_root)
 
     log.debug("Configuration complete.")
 

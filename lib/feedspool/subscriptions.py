@@ -10,6 +10,7 @@ from httpcache import HTTPCache
 import opml
 from feedspool import config
 from feedspool.spooler import Spooler
+from feedspool.config import plugin_manager
 from TimeRotatingFileHandler import TimeRotatingFileHandler
 from OverlayConfigParser import OverlayConfigParser
 
@@ -91,6 +92,7 @@ class Subscription:
         """Scan the subscribed feed for any updates, spool new entries."""
         self.startLogging()
         self.save() # HACK: Pre-save to ensure directories created
+        plugin_manager.dispatch("feed_scan_start", subscription=self)
 
         try:
             # Bump the last scan timestamp.
@@ -101,6 +103,7 @@ class Subscription:
             if now > self.meta.get('scan', 'next_poll'):
                 self.meta.set('scan', 'last_polled', now)
                 self.log.debug("Polling %s" % self.uri)
+                plugin_manager.dispatch("feed_poll_start", subscription=self)
 
                 found_new_entries = False
                 try:
@@ -119,17 +122,25 @@ class Subscription:
                             self.meta.set('scan', 'last_updated', now)
                             self.log.debug("\tFound %s new entries." % \
                                 len(new_entries))
+                            plugin_manager.dispatch("feed_new_entries", 
+                                subscription=self, entries=new_entries)
+                        else:
+                            plugin_manager.dispatch("feed_no_new_entries", 
+                                subscription=self)
 
                 except KeyboardInterrupt: raise
                 except Exception, e:
                     self.log.exception("Problem while polling %s" % self.uri)
+                    plugin_manager.dispatch("feed_poll_error", 
+                        subscription=self, exception=e)
 
                 # Tweak the update period and schedule the next poll.
-                update_period = self.updatePollingPeriod(found_new_entries)
                 self.scheduleNextPoll()
+                plugin_manager.dispatch("feed_poll_end", subscription=self)
 
         finally:
             # Save any changes to the subscription, stop logging.
+            plugin_manager.dispatch("feed_scan_end", subscription=self)
             self.save()
             self.stopLogging()
 
@@ -158,30 +169,6 @@ class Subscription:
             fout.close()
 
         return changed
-
-    def updatePollingPeriod(self, found_new_entries):
-        """Update the polling period, based on finding new entries."""
-        update_period = self.meta.getint('scan', 'current_update_period')
-
-        if found_new_entries:
-            # If there were new entries, try ramping up the update freq.
-            ramp_up_factor    = self.meta.getfloat('scan', 'update_ramp_up_factor')
-            new_update_period = int(update_period * ramp_up_factor)
-
-        else:
-            # If there weren't new entries, try backing off the update freq.
-            back_off_period   = self.meta.getfloat('scan', 'update_back_off_period')
-            new_update_period = int(update_period + back_off_period)
-
-        # Constrain the new update period to the min/max range.
-        min_period = self.meta.getint('scan', 'min_update_period')
-        max_period = self.meta.getint('scan', 'max_update_period')
-        update_period = \
-            max(min_period, min(max_period, new_update_period))
-
-        # Save the new period and return the value.
-        self.meta.set('scan', 'current_update_period', str(update_period))
-        return update_period
 
     def scheduleNextPoll(self):
         """Schedule the next future poll based on update period."""
@@ -291,6 +278,7 @@ class SubscriptionsList:
 
         # scan.feedScan(new_feed, xd)
         sub = Subscription(uri)
+        plugin_manager.dispatch("adding_feed", subscription=sub)
         sub.save()
         self.subs.append(sub)
 
@@ -299,7 +287,9 @@ class SubscriptionsList:
         if not uri in self.listURIs():
             raise SubscriptionNotFoundException(uri)
         doomed_subs = [ x for x in self.subs if x.uri == uri ]
-        for x in doomed_subs: self.subs.remove(x)
+        for x in doomed_subs: 
+            plugin_manager.dispatch("removing_feed", subscription=x)
+            self.subs.remove(x)
 
     def save(self):
         """Save changes to the subscriptions list."""
