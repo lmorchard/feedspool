@@ -11,6 +11,7 @@ class Plugin:
 
 class PluginManager:
     """Manager of plugins, dispatcher of hook calls."""
+
     def __init__(self, plugins_root):
         """Initialize, load up and create plugin instances."""
         self.log  = logging.getLogger("%s"%self.__class__.__name__)
@@ -20,6 +21,14 @@ class PluginManager:
 
     def load_plugins(self, plugins_root):
         """Scan through plugins dir, load and instantiate plugins found."""
+        plugin_modules = []
+
+        # Search for *.py in plugin root dir.
+        mods = [x for x in os.listdir(plugin_root) if x.endswith('.py')]
+        for module_fn in mods:
+            module = self.import_by_name(module_fn[:-3], plugin_root)
+            self.init_plugins_from_module(module, plugins_root)
+
         # Recursive scan of plugins dir, looking for plugin modules.
         for root, dirs, files in os.walk(plugins_root):
             if 'plugin.py' in files:
@@ -32,21 +41,29 @@ class PluginManager:
 
                 # Look for the plugin sub-module...
                 if module and hasattr(module, 'plugin'):
+                    plugin_root, ignore = os.path.split(lib_dir)
+                    self.init_plugins_from_module(module.plugin, plugin_root)
 
-                    # Search for Plugin subclasses in the module.
-                    for cls_name in dir(module.plugin):
-                        cls = getattr(module.plugin, cls_name)
-                        if type(cls) is type(Plugin) and cls != Plugin and \
-                                issubclass(cls, Plugin):
+    def init_plugins_from_module(module, plugin_root):
+        """Given a module, search for plugins inside, instantiate them."""
+        # Search for Plugin subclasses in the module.
+        for cls_name in dir(module):
 
-                            # Work out the plugin root dir, instantiate it
-                            plugin_root, ignore = os.path.split(lib_dir)
-                            self.plugins.append(cls(self, plugin_root))
-                            self.log.debug("Loaded plugin %s (%s)" % \
-                                    (plugin_root, cls.__name__))
+            # Get the module part, make sure it's a plugin subclass.
+            cls = getattr(module, cls_name)
+            if type(cls) is type(Plugin) and cls != Plugin and issubclass(cls, Plugin):
+
+                # Work out the plugin root dir, instantiate it
+                self.plugins.append(cls(self, plugin_root))
+                self.log.debug("Loaded plugin %s (%s)" % \
+                    (plugin_root, cls.__name__))
 
     def import_by_name(self, module_name, lib_dir):
         """Given a module name, attempt to load it, return module."""
+        # Add the module's lib dir to the system path
+        if not lib_dir in sys.path:
+            sys.path.append(lib_dir)
+        
         fp, pathname, desc = imp.find_module(module_name, [lib_dir])
         module = None
         try:
