@@ -13,6 +13,8 @@ TODO
         * Feed poll end
         * Scan ended
 
+* Simplified plugins which consist of a single .py file
+
 * Multi-process feed polling
     * Process locks feed config to "claim" it for poll
 

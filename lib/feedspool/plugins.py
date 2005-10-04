@@ -24,9 +24,9 @@ class PluginManager:
         plugin_modules = []
 
         # Search for *.py in plugin root dir.
-        mods = [x for x in os.listdir(plugin_root) if x.endswith('.py')]
+        mods = [x for x in os.listdir(plugins_root) if x.endswith('.py')]
         for module_fn in mods:
-            module = self.import_by_name(module_fn[:-3], plugin_root)
+            module = self.import_by_name(module_fn[:-3], plugins_root)
             self.init_plugins_from_module(module, plugins_root)
 
         # Recursive scan of plugins dir, looking for plugin modules.
@@ -44,7 +44,7 @@ class PluginManager:
                     plugin_root, ignore = os.path.split(lib_dir)
                     self.init_plugins_from_module(module.plugin, plugin_root)
 
-    def init_plugins_from_module(module, plugin_root):
+    def init_plugins_from_module(self, module, plugin_root):
         """Given a module, search for plugins inside, instantiate them."""
         # Search for Plugin subclasses in the module.
         for cls_name in dir(module):
