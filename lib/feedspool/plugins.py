@@ -20,16 +20,19 @@ class PluginManager:
         self.load_plugins(plugins_root)
 
     def load_plugins(self, plugins_root):
-        """Scan through plugins dir, load and instantiate plugins found."""
+        """Scan through plugins dir, load and instantiate plugins found.
+        Note that this supports both single-module plugins, as well as
+        plugin bundles."""
+
         plugin_modules = []
 
-        # Search for *.py in plugin root dir.
+        # Search for *.py in plugin root dir for single module plugins.
         mods = [x for x in os.listdir(plugins_root) if x.endswith('.py')]
         for module_fn in mods:
             module = self.import_by_name(module_fn[:-3], plugins_root)
             self.init_plugins_from_module(module, plugins_root)
 
-        # Recursive scan of plugins dir, looking for plugin modules.
+        # Recursive scan of plugins dir, looking for bundled plugin modules.
         for root, dirs, files in os.walk(plugins_root):
             if 'plugin.py' in files:
 
@@ -39,7 +42,7 @@ class PluginManager:
                 # Add the plugin lib path, import the main module.
                 module = self.import_by_name(module_name, lib_dir)
 
-                # Look for the plugin sub-module...
+                # Look for the plugin sub-module and init plugins.
                 if module and hasattr(module, 'plugin'):
                     plugin_root, ignore = os.path.split(lib_dir)
                     self.init_plugins_from_module(module.plugin, plugin_root)
@@ -55,8 +58,8 @@ class PluginManager:
 
                 # Work out the plugin root dir, instantiate it
                 self.plugins.append(cls(self, plugin_root))
-                self.log.debug("Loaded plugin %s (%s)" % \
-                    (plugin_root, cls.__name__))
+                self.log.debug("Loaded plugin %s (at %s)" % \
+                    (cls.__name__, plugin_root))
 
     def import_by_name(self, module_name, lib_dir):
         """Given a module name, attempt to load it, return module."""
@@ -64,6 +67,7 @@ class PluginManager:
         if not lib_dir in sys.path:
             sys.path.append(lib_dir)
         
+        # This is lifted straight from the docs for the imp module:
         fp, pathname, desc = imp.find_module(module_name, [lib_dir])
         module = None
         try:
@@ -74,10 +78,12 @@ class PluginManager:
         return module
 
     def dispatch(self, meth_name, **kw):
-        """Fire off a message and set of keyword args to all plugins 
-        listening for it."""
-        #self.log.debug("Calling plugin hook %s with %s" % (meth_name, kw))
+        """Fire off a message and args to all plugins listening for it."""
         for plugin in self.plugins:
             if hasattr(plugin, meth_name):
-                getattr(plugin, meth_name)(**kw)
+                try:
+                    getattr(plugin, meth_name)(**kw)
+                except Exception, e:
+                    self.log.exception("Problem while dispatching %s to %s" % \
+                        (meth_name, plugin))
 
