@@ -44,6 +44,7 @@ class Subscription:
         self.uid     = md5(uri).hexdigest()
         self.path    = os.path.join(self.spool_path, self.uid)
         self.feed_fn = os.path.join(self.path, config.FEED_FULL_FN)
+        self.head_fn = os.path.join(self.path, config.FEED_HEAD_FN)
 
         self.log_debug_hnd = None
         self.log_hnd       = None
@@ -58,24 +59,28 @@ class Subscription:
         if os.path.isfile(self.meta_fn):
             # Load up the metadata for the subscription.
             self.meta.read(self.meta_fn)
-        
         else:
-            # Initialize new metadata if none found.
-            self.log.debug("Initializing metadata for %s" % self.uri)
-            self.meta.add_section('scan')
+            # Initialize new metadata when not found.
+            self.initMeta()
 
-            # Set some basic metadata values
-            self.meta.set('scan', 'uri', self.uri)
-            self.meta.set('scan', 'uid', self.uid)
+    def initMeta(self):
+        """ """
+        # Initialize new metadata if none found.
+        self.log.debug("Initializing metadata for %s" % self.uri)
+        self.meta.add_section('scan')
 
-            # Set the beginning datestamps.
-            self.meta.set('scan', 'last_scanned', ISO_NEVER)
-            self.meta.set('scan', 'last_polled',  ISO_NEVER)
-            self.meta.set('scan', 'last_updated', ISO_NEVER)
-            self.meta.set('scan', 'next_poll',    ISO_NEVER)
+        # Set some basic metadata values
+        self.meta.set('scan', 'uri', self.uri)
+        self.meta.set('scan', 'uid', self.uid)
 
-            # Set the default scanning parameters.
-            self.meta.set('scan', 'current_update_period', '600')
+        # Set the beginning datestamps.
+        self.meta.set('scan', 'last_scanned', ISO_NEVER)
+        self.meta.set('scan', 'last_polled',  ISO_NEVER)
+        self.meta.set('scan', 'last_updated', ISO_NEVER)
+        self.meta.set('scan', 'next_poll',    ISO_NEVER)
+
+        # Set the default scanning parameters.
+        self.meta.set('scan', 'current_update_period', '600')
 
     def save(self):
         """Save changes to the subscription."""
@@ -84,6 +89,7 @@ class Subscription:
             log.debug("Creating new subscription spool path: %s" % self.path)
             os.mkdir(self.path, 0777)
             os.mkdir(os.path.join(self.path, config.ENTRIES_DIR), 0777)
+            self.initMeta()
 
         # Save the subscription metadata
         self.meta.write(open(self.meta_fn, 'w'))
@@ -111,7 +117,6 @@ class Subscription:
                     if self.fetch():
 
                         # Spool the entries found in the feed.
-                        self.log.debug("\tSpooling entries.")
                         spooler = Spooler(self)
                         spooler.spool()
 
@@ -120,7 +125,7 @@ class Subscription:
                         if len(new_entries) > 0:
                             found_new_entries = True
                             self.meta.set('scan', 'last_updated', now)
-                            self.log.debug("\tFound %s new entries." % \
+                            self.log.debug("Found %s new entries." % \
                                 len(new_entries))
                             plugin_manager.dispatch("feed_new_entries", 
                                 subscription=self, entries=new_entries)
