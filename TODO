@@ -1,22 +1,26 @@
 TODO
 
+* Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
+
+* Stale entry cleaner plugin
+    * Gets list of entries in spool
+    * Ignores entries still in the feed
+    * Deletes entries over N seconds old
+
 * Plugin hooks:
+
+    * Additional hook types
+        * Return a boolean to "veto" some decision
+        * Munge / filter feed data after fetch
+        * Munge / filter entry data after spool
+
     * Executable files in plugin dir structure (keep it unixy / djb-esque)
         * Offer examples where little scripts use pipes to talk to a bigger persistent process
             * Need pipe locking?
-    * Called single-process for poll start/end; multi-process for others.
-    * Hooks
-        * Scan started
-        * Feed poll start
-            * Only on changed data?
-        * New entry found
-        * Feed poll end
-        * Scan ended
-
-* Simplified plugins which consist of a single .py file
 
 * Multi-process feed polling
     * Process locks feed config to "claim" it for poll
+    * Plugins called single-process for poll start/end; multi-process for others.
 
 * See about using per-feed overlay config for setting up per-channel logging
 
