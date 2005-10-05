@@ -19,13 +19,21 @@ from feedspool.plugins import Plugin
 
 class PollScheduleVaryPlugin(Plugin):
 
-    def feed_new_entries(self, subscription, entries):
-        """Tweak the polling period on new entries."""
-        self.update_period(subscription, True)
+    def startup(self):
+        """Start off with a blank set of new entry flags."""
+        self.new_flags = {}
 
-    def feed_no_new_entries(self, subscription):
-        """Tweak the polling period on no new entries."""
-        self.update_period(subscription, False)
+    def feed_poll_start(self, subscription):
+        """At the start of a feed scan, flag no new feeds by default."""
+        self.new_flags[subscription.uid] = False
+
+    def feed_new_entries(self, subscription, entries):
+        """When new entries found, flip the feed's flag."""
+        self.new_flags[subscription.uid] = True
+
+    def feed_poll_end(self, subscription):
+        """At the end of a feed scan, tweak the polling period."""
+        self.update_period(subscription, self.new_flags[subscription.uid])
 
     def update_period(self, subscription, found_new_entries):
         """Update the polling period, based on finding new entries."""
@@ -44,14 +52,16 @@ class PollScheduleVaryPlugin(Plugin):
                 subscription.meta.getfloat('scan', 'update_back_off_period')
             new_update_period = int(update_period + back_off_period)
 
-        self.log.debug("Updating period from %s to %s" % \
-                (update_period, new_update_period))
-
         # Constrain the new update period to the min/max range.
         min_period = subscription.meta.getint('scan', 'min_update_period')
         max_period = subscription.meta.getint('scan', 'max_update_period')
+
+        # Update the update period.
+        old_update_period = update_period
         update_period = \
             max(min_period, min(max_period, new_update_period))
+        self.log.debug("Updating period from %s to %s" % \
+                (old_update_period, update_period))
 
         # Save the new period and return the value.
         subscription.meta.set('scan', 'current_update_period', str(update_period))
