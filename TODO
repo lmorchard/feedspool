@@ -1,6 +1,12 @@
 TODO
 
+* Popular links feed, next generation from the book
+
 * Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
+
+* Feed errors logged as a feed?  404, 410, 401, misc exceptions
+
+* Configuration for plugins.  Overlay with main config?
 
 * Stale entry cleaner plugin
     * Gets list of entries in spool
@@ -10,9 +16,9 @@ TODO
 * Plugin hooks:
 
     * Additional hook types
-        * Return a boolean to "veto" some decision
         * Munge / filter feed data after fetch
         * Munge / filter entry data after spool
+        * Need plugins which can add commands to CLI
 
     * Executable files in plugin dir structure (keep it unixy / djb-esque)
         * Offer examples where little scripts use pipes to talk to a bigger persistent process
