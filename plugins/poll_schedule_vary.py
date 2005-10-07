@@ -27,7 +27,7 @@ class PollScheduleVaryPlugin(Plugin):
         """At the start of a feed scan, flag no new feeds by default."""
         self.new_flags[subscription.uid] = False
 
-    def feed_new_entries(self, subscription, entries):
+    def feed_new_entries(self, subscription, new_entries, all_entries):
         """When new entries found, flip the feed's flag."""
         self.new_flags[subscription.uid] = True
 
