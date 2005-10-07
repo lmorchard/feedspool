@@ -42,10 +42,15 @@ class Spooler:
         head_fout.close()
 
         self.new_entries = spooler.new_entries
+        self.all_entries = spooler.all_entries
 
     def getNewEntryPaths(self):
         """ """
         return self.new_entries
+
+    def getAllEntryPaths(self):
+        """ """
+        return self.all_entries
 
 class SpoolerFilter(XMLFilterBase):
     """SAX filter which chops a feed up into feed head and spooled entry
@@ -67,6 +72,7 @@ class SpoolerFilter(XMLFilterBase):
         self.head_xg      = head_xg
         self.entries_root = entries_root
         self.subscription = subscription
+        self.all_entries  = []
         self.new_entries  = []
 
         self.setFeature(feature_namespaces, True)
@@ -119,6 +125,7 @@ class SpoolerFilter(XMLFilterBase):
 
             # Write out the entry data to a spool file, with hash-based name.
             entry_fn = os.path.join(entry_path, config.ENTRY_FN_TMPL % entry_hash)
+            self.all_entries.append(entry_fn)
             if not os.path.exists(entry_fn):
                 entry_fout = open(entry_fn, 'w')
                 entry_fout.write(entry_src)
@@ -130,6 +137,9 @@ class SpoolerFilter(XMLFilterBase):
 
 class XMLGenerator(xml.sax.saxutils.XMLGenerator):
     """XMLGenerator subclass to fix a few namespace-related bugs."""
+
+    def _write(self, string):
+        self._out.write(string)
 
     def startDocument(self):
         self._current_context[u'http://www.w3.org/XML/1998/namespace'] = "xml"
