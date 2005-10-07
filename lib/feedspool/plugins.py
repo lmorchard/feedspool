@@ -77,13 +77,25 @@ class PluginManager:
 
         return module
 
+    def decide(self, meth_name, **kw):
+        """Dispatch a message and return the yay or nay decision 
+        offered by plugins."""
+        returns = self.dispatch(meth_name, **kw)
+        return (True in returns, False in returns)
+
     def dispatch(self, meth_name, **kw):
         """Fire off a message and args to all plugins listening for it."""
+        returns = []
         for plugin in self.plugins:
             if hasattr(plugin, meth_name):
                 try:
-                    getattr(plugin, meth_name)(**kw)
+                    rv = getattr(plugin, meth_name)(**kw)
+                    returns.append(rv)
                 except Exception, e:
                     self.log.exception("Problem while dispatching %s to %s" % \
                         (meth_name, plugin))
+                    returns.append(None)
+
+        # Return the collection of plugin return values.
+        return returns
 
