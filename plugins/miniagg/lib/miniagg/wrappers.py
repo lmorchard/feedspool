@@ -1,7 +1,7 @@
 """ 
 """
 import sys, time, os, os.path, feedparser
-from templates import UNICODE_ENC, TMPL_INDEX, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
+from templates import UNICODE_ENC, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
 
 class FeedWrapper:
 

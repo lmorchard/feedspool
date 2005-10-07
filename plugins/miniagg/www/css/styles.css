@@ -1,5 +1,37 @@
 body {
     font: 10px verdana;
+    margin: 10px;
+}
+
+ul.newsindex {
+    margin: 0 0 15px 0;
+    padding: 0;
+    list-style: none;
+}
+ul.newsindex h1 {
+    margin: 0 0 10px 0;
+    padding: 2px;
+    border: 1px solid #000;
+    background: #ddd;
+    font-size: 1.25em;
+}
+ul.newsindex li {
+    font-weight: bold;
+    font-size: 1.15em;
+    line-height: 1.45em;
+}
+ul.newsindex li:before {
+    content: "\00BB \0020";
+}
+ul.newsindex li a {
+    text-decoration: none;
+}
+ul.newsindex li a:hover {
+    text-decoration: underline;
+}
+ul.newsindex li a abbr {
+    text-decoration: none;
+    border: none;
 }
 
 ul.feeds {

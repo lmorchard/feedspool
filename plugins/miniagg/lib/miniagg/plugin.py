@@ -3,25 +3,33 @@ import sys, time, os, os.path, feedparser
 from feedspool import config
 from feedspool.plugins import Plugin
 
-from templates import UNICODE_ENC, TMPL_INDEX, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
+from templates import UNICODE_ENC, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
+from templates import TMPL_LIST_END, TMPL_LIST_START, TMPL_INDEX_PAGE, TMPL_INDEX_PAGE_ITEM
+from templates import TMPL_MAIN_PAGE
+
 from wrappers  import FeedWrapper, EntryWrapper
 
-NEWS_PAGE_FN = "news-%Y%m%d-%H%M%S.html" 
+NEWS_PAGE_FN = "%Y/%m/%d/%H%M%S.html"
 
 class MiniAggPlugin(Plugin):
 
-    NEWS_PAGE_FN   = NEWS_PAGE_FN
-    TMPL_NEWS_PAGE = TMPL_NEWS_PAGE
+    NEWS_PAGE_FN         = NEWS_PAGE_FN
+    TMPL_MAIN_PAGE       = TMPL_MAIN_PAGE
+    TMPL_NEWS_PAGE       = TMPL_NEWS_PAGE
+    TMPL_LIST_END        = TMPL_LIST_END
+    TMPL_LIST_START      = TMPL_LIST_START
+    TMPL_INDEX_PAGE      = TMPL_INDEX_PAGE
+    TMPL_INDEX_PAGE_ITEM = TMPL_INDEX_PAGE_ITEM
 
     def scan_start(self):
         """At start of scan, initialize for aggregation."""
         self.feeds = []
 
-    def feed_new_entries(self, subscription, entries):
+    def feed_new_entries(self, subscription, new_entries, all_entries):
         """Upon finding new entries for a feed, wrap for rendering."""
         data = feedparser.parse(subscription.head_fn)
         if 'feed' in data:
-            feed = FeedWrapper(data['feed'], entries)
+            feed = FeedWrapper(data['feed'], new_entries)
             self.feeds.append(feed)
 
     def scan_end(self):
@@ -39,10 +47,76 @@ class MiniAggPlugin(Plugin):
             fn_out   = time.strftime(self.NEWS_PAGE_FN)
             path_out = os.path.join(self.plugin_root, 'www', fn_out)
 
+            # Create the leading directories, if necessary
+            base_path, fn_out = os.path.split(path_out)
+            if not os.path.isdir(base_path): os.makedirs(base_path)
+
             # Open the output file and write the output HTML.
             fout = open(path_out, 'w')
             fout.write(out)
             fout.close()
             
             self.log.debug("Wrote %s" % fn_out)
+
+            # Index the news pages and produce nav HTML.
+            self.index_news()
+
+    def index_news(self):
+        pages = []
+
+        for root, dirs, files in os.walk(os.path.join(self.plugin_root, 'www')):
+
+            # A news archive dir is 4 directories deep.
+            parts = root.split('/')
+            if len(parts) != 4: continue
+
+            # The second part should be a year
+            if len(parts[1]) < 4: continue
+            try: yy = parts[1]
+            except ValueError: continue
+
+            # The third part should be a month
+            if len(parts[2]) < 2: continue
+            try: mm = parts[2]
+            except ValueError: continue
+           
+            # The fourth part should be a day
+            if len(parts[3]) < 2: continue
+            try: dd = parts[3]
+            except ValueError: continue
+           
+            for file in files:
+                (h, m, s) = file[0:2], file[2:4], file[4:6]
+                page = { 
+                    'path': '%s/%s' % ("/".join(parts[1:]), file), 
+                    'yy':yy, 'mm':mm, 'dd':dd,
+                    'h':h, 'm':m, 's':s
+                }
+                pages.append(page)
+
+        pages.sort(lambda a,b: cmp(b['path'], a['path']))
+
+        out, curr_date = [], None
+        for p in pages:
+            now = "%(yy)s-%(mm)s-%(dd)s" % p
+            if now != curr_date:
+                if curr_date: out.append(TMPL_LIST_END)
+                out.append(TMPL_LIST_START % p)
+                curr_date = now
+
+            out.append(TMPL_INDEX_PAGE_ITEM % p)
+
+        out.append(TMPL_LIST_END)
+
+        # Write out the nav side panel.
+        nav_path = os.path.join(self.plugin_root, 'www', 'nav.html')
+        fout = open(nav_path, 'w')
+        fout.write(TMPL_INDEX_PAGE % { 'page_list':"\n".join(out) })
+        fout.close()
+
+        # Write out the index page.
+        index_path = os.path.join(self.plugin_root, 'www', 'index.html')
+        fout = open(index_path, 'w')
+        fout.write(TMPL_MAIN_PAGE % pages[0])
+        fout.close()
 
