@@ -68,6 +68,12 @@ class Subscription:
         # Initialize new metadata if none found.
         self.log.debug("Initializing metadata for %s" % self.uri)
         self.meta.add_section('scan')
+        
+        # TODO: Should fix the actual cause.  Something in meta init.
+        #try:
+        #    self.meta.add_section('scan')
+        #except DuplicateSectionError:
+        #    pass
 
         # Set some basic metadata values
         self.meta.set('scan', 'uri', self.uri)
@@ -80,7 +86,7 @@ class Subscription:
         self.meta.set('scan', 'next_poll',    ISO_NEVER)
 
         # Set the default scanning parameters.
-        self.meta.set('scan', 'current_update_period', '600')
+        self.meta.set('scan', 'current_update_period', '3600')
 
     def save(self):
         """Save changes to the subscription."""
@@ -89,7 +95,6 @@ class Subscription:
             log.debug("Creating new subscription spool path: %s" % self.path)
             os.mkdir(self.path, 0777)
             os.mkdir(os.path.join(self.path, config.ENTRIES_DIR), 0777)
-            self.initMeta()
 
         # Save the subscription metadata
         self.meta.write(open(self.meta_fn, 'w'))
@@ -105,8 +110,12 @@ class Subscription:
             now = now_ISO()
             self.meta.set('scan', 'last_scanned', now)
 
+            # Does any plugin want to force or veto a scan?
+            force_scan, veto_scan = \
+                plugin_manager.decide("feed_should_scan", subscription=self)
+
             # Is it time for the next poll?
-            if now > self.meta.get('scan', 'next_poll'):
+            if (force_scan or now > self.meta.get('scan', 'next_poll')) and not veto_scan:
                 self.meta.set('scan', 'last_polled', now)
                 self.log.debug("Polling %s" % self.uri)
                 plugin_manager.dispatch("feed_poll_start", subscription=self)
@@ -114,24 +123,28 @@ class Subscription:
                 found_new_entries = False
                 try:
                     # Has the feed content changed?
-                    if self.fetch():
+                    changed = self.fetch()
+
+                    # If a scan is being forced, or the feed has changed, go ahead...
+                    if force_scan or changed:
 
                         # Spool the entries found in the feed.
                         spooler = Spooler(self)
                         spooler.spool()
+                        new_entries = spooler.getNewEntryPaths()
+                        all_entries = spooler.getAllEntryPaths()
 
                         # If found new entries, flip the flag.
-                        new_entries = spooler.getNewEntryPaths()
                         if len(new_entries) > 0:
                             found_new_entries = True
                             self.meta.set('scan', 'last_updated', now)
                             self.log.debug("Found %s new entries." % \
                                 len(new_entries))
                             plugin_manager.dispatch("feed_new_entries", 
-                                subscription=self, entries=new_entries)
+                                subscription=self, new_entries=new_entries, all_entries=all_entries)
                         else:
                             plugin_manager.dispatch("feed_no_new_entries", 
-                                subscription=self)
+                                subscription=self, all_entries=all_entries)
 
                 except KeyboardInterrupt: raise
                 except Exception, e:
@@ -259,7 +272,7 @@ class SubscriptionsList:
             if x.uri == uri: return x
         raise SubscriptionNotFoundException(uri)
 
-    def add(self, uri, find_feed=True):
+    def add(self, uri, find_feed=False):
         """Add a subscription to a feed."""
         if uri in self.listURIs():
             raise SubscriptionDuplicateException(uri)
