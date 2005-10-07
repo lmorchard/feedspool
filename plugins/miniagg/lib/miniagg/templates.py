@@ -7,7 +7,7 @@ TMPL_MAIN_PAGE = """
 
       <head> <title>feedReactor</title> </head>
 
-      <frameset name="frameset" cols="115,*" framespacing="3" topmargin="0" 
+      <frameset name="frameset" cols="125,*" framespacing="3" topmargin="0" 
                 leftmargin="0" marginheight="0" marginwidth="0" border="1" 
                 bordercolor="#dddddd">
 

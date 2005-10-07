@@ -58,37 +58,33 @@ class MiniAggPlugin(Plugin):
             
             self.log.debug("Wrote %s" % fn_out)
 
-            # Index the news pages and produce nav HTML.
-            self.index_news()
+        # Index the news pages and produce nav HTML.
+        self.index_news()
 
     def index_news(self):
         pages = []
 
         for root, dirs, files in os.walk(os.path.join(self.plugin_root, 'www')):
 
-            # A news archive dir is 4 directories deep.
-            parts = root.split('/')
-            if len(parts) != 4: continue
+            # A news archive dir is yyyy/mm/dd/HHMMSS.html
+            parts = root.split('/')[-3:]
 
             # The second part should be a year
-            if len(parts[1]) < 4: continue
-            try: yy = parts[1]
-            except ValueError: continue
+            if len(parts[0]) != 4: continue
+            yy = parts[0]
 
             # The third part should be a month
-            if len(parts[2]) < 2: continue
-            try: mm = parts[2]
-            except ValueError: continue
+            if len(parts[1]) != 2: continue
+            mm = parts[1]
            
             # The fourth part should be a day
-            if len(parts[3]) < 2: continue
-            try: dd = parts[3]
-            except ValueError: continue
+            if len(parts[2]) != 2: continue
+            dd = parts[2]
            
             for file in files:
                 (h, m, s) = file[0:2], file[2:4], file[4:6]
                 page = { 
-                    'path': '%s/%s' % ("/".join(parts[1:]), file), 
+                    'path': '%s/%s' % ("/".join(parts), file), 
                     'yy':yy, 'mm':mm, 'dd':dd,
                     'h':h, 'm':m, 's':s
                 }
@@ -115,8 +111,9 @@ class MiniAggPlugin(Plugin):
         fout.close()
 
         # Write out the index page.
-        index_path = os.path.join(self.plugin_root, 'www', 'index.html')
-        fout = open(index_path, 'w')
-        fout.write(TMPL_MAIN_PAGE % pages[0])
-        fout.close()
+        if len(pages) > 0:
+            index_path = os.path.join(self.plugin_root, 'www', 'index.html')
+            fout = open(index_path, 'w')
+            fout.write(TMPL_MAIN_PAGE % pages[0])
+            fout.close()
 
