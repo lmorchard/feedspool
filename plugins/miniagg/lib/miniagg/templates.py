@@ -5,7 +5,7 @@ UNICODE_ENC  = 'utf-8'
 TMPL_MAIN_PAGE = """
     <html>
 
-      <head> <title>feedReactor</title> </head>
+      <head> <title>miniagg</title> </head>
 
       <frameset name="frameset" cols="125,*" framespacing="3" topmargin="0" 
                 leftmargin="0" marginheight="0" marginwidth="0" border="1" 
