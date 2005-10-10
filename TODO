@@ -1,6 +1,12 @@
 TODO
 
+* How to handle "updated" entries with the same ID?  (See: Slate RSS)
+
+* Make miniagg watch feed entry IDs for freshness.
+
 * Popular links feed, next generation from the book
+
+* Plugin which traps XML errors, "repairs" feed with feedparser normalization, respools
 
 * Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
 

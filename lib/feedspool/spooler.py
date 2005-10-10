@@ -44,6 +44,10 @@ class Spooler:
         self.new_entries = spooler.new_entries
         self.all_entries = spooler.all_entries
 
+    def getEntryPaths(self):
+        """ """ 
+        return self.all_entries, self.new_entries
+
     def getNewEntryPaths(self):
         """ """
         return self.new_entries

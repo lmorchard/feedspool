@@ -7,11 +7,15 @@ import socket; socket.setdefaulttimeout(300)
 
 from feedspool.plugins import PluginManager
 
+USER_AGENT    = "FeedSpool/0.1 +http://decafbad.com/trac/wiki/FeedSpool"
+
 META_FN       = 'subscription.conf'
 FEED_FULL_FN  = 'full.feed'
 FEED_HEAD_FN  = 'head.feed'
 ENTRIES_DIR   = 'entries'
 ENTRY_FN_TMPL = '%s.entry'
+
+ACCEPT_HEADER = "application/atom+xml,application/rdf+xml,application/rss+xml,application/x-netcdf,application/xml;q=0.9,text/xml;q=0.2,*/*;q=0.1"
 
 def configure(conf_fn="conf/feedspool.conf"):
     """Read in the config file and initialize a few things."""
