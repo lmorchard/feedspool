@@ -1,6 +1,7 @@
 """
 """
-import sys, os, os.path, time, logging, traceback, feedfinder
+import sys, os, os.path, time, logging, traceback, base64, urllib
+import feedfinder
 from datetime import datetime, timedelta
 from md5 import md5
 from cStringIO import StringIO
@@ -122,29 +123,9 @@ class Subscription:
 
                 found_new_entries = False
                 try:
-                    # Has the feed content changed?
-                    changed = self.fetch()
-
                     # If a scan is being forced, or the feed has changed, go ahead...
-                    if force_scan or changed:
-
-                        # Spool the entries found in the feed.
-                        spooler = Spooler(self)
-                        spooler.spool()
-                        new_entries = spooler.getNewEntryPaths()
-                        all_entries = spooler.getAllEntryPaths()
-
-                        # If found new entries, flip the flag.
-                        if len(new_entries) > 0:
-                            found_new_entries = True
-                            self.meta.set('scan', 'last_updated', now)
-                            self.log.debug("Found %s new entries." % \
-                                len(new_entries))
-                            plugin_manager.dispatch("feed_new_entries", 
-                                subscription=self, new_entries=new_entries, all_entries=all_entries)
-                        else:
-                            plugin_manager.dispatch("feed_no_new_entries", 
-                                subscription=self, all_entries=all_entries)
+                    changed = self.fetch()
+                    if force_scan or changed: self.spool()
 
                 except KeyboardInterrupt: raise
                 except Exception, e:
@@ -162,10 +143,53 @@ class Subscription:
             self.save()
             self.stopLogging()
 
+    def spool(self):
+        """Process feed data, spool off any new entries."""
+        plugin_manager.dispatch("feed_spool_start", subscription=self)
+
+        # Spool the entries found in the feed.
+        spooler = Spooler(self)
+        spooler.spool()
+        all_entries, new_entries = spooler.getEntryPaths()
+
+        # If found new entries, flip the flag.
+        if len(new_entries) > 0:
+            found_new_entries = True
+            self.meta.set('scan', 'last_updated', now_ISO())
+            self.log.debug("Found %s new entries." % \
+                len(new_entries))
+            plugin_manager.dispatch("feed_new_entries", 
+                subscription=self, new_entries=new_entries, all_entries=all_entries)
+        else:
+            plugin_manager.dispatch("feed_no_new_entries", 
+                subscription=self, all_entries=all_entries)
+
+        plugin_manager.dispatch("feed_spool_end", subscription=self)
+
     def fetch(self):
         """Fetch the data for the feed, return whether feed has changed."""
+        plugin_manager.dispatch("feed_fetch_start", subscription=self)
+
+        # Prepare the URI and initial headers for the fetch.
+        feed_uri = self.uri
+        headers  = {
+            'User-Agent': config.USER_AGENT,
+            'Accept':     config.ACCEPT_HEADER 
+        }
+
+        # Stolen from feedparser: Handle inline user:password for basic auth
+        auth = None
+        urltype, rest  = urllib.splittype(feed_uri)
+        realhost, rest = urllib.splithost(rest)
+        if realhost:
+            user_passwd, realhost = urllib.splituser(realhost)
+            if user_passwd:
+                feed_uri = "%s://%s%s" % (urltype, realhost, rest)
+                auth = base64.encodestring(user_passwd).strip()
+                headers['Authorization'] = "Basic %s" % auth
+
         # Grab the feed data via HTTPCache
-        cache     = HTTPCache(self.uri)
+        cache     = HTTPCache(feed_uri, headers)
         info      = cache.info()
         content   = cache.content()
         feed_hash = md5(content).hexdigest()
@@ -186,6 +210,7 @@ class Subscription:
             fout.write(content)
             fout.close()
 
+        plugin_manager.dispatch("feed_fetch_end", subscription=self, changed=changed)
         return changed
 
     def scheduleNextPoll(self):
