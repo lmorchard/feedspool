@@ -2,12 +2,19 @@
 
 import sys, os, os.path, imp, logging
 import feedspool.config
+from OverlayConfigParser import OverlayConfigParser
 
 class Plugin:
     """Base class for all plugins."""
-    def __init__(self, manager, plugin_root):
+    def __init__(self, manager, plugin_root, config, plugin_name):
         self.log  = logging.getLogger("%s"%self.__class__.__name__)
+        self.plugin_manager = manager
         self.plugin_root = plugin_root
+        self.plugin_name = plugin_name
+        self.config = config
+
+    def get_config(self, name):
+        return self.config.get(self.plugin_name, name)
 
 class PluginManager:
     """Manager of plugins, dispatcher of hook calls."""
@@ -30,7 +37,7 @@ class PluginManager:
         mods = [x for x in os.listdir(plugins_root) if x.endswith('.py')]
         for module_fn in mods:
             module = self.import_by_name(module_fn[:-3], plugins_root)
-            self.init_plugins_from_module(module, plugins_root)
+            self.init_plugins_from_module(module, plugins_root, module_fn[:-3])
 
         # Recursive scan of plugins dir, looking for bundled plugin modules.
         for root, dirs, files in os.walk(plugins_root):
@@ -45,10 +52,20 @@ class PluginManager:
                 # Look for the plugin sub-module and init plugins.
                 if module and hasattr(module, 'plugin'):
                     plugin_root, ignore = os.path.split(lib_dir)
-                    self.init_plugins_from_module(module.plugin, plugin_root)
+                    ignore, plugin_name = os.path.split(plugin_root)
+                    self.init_plugins_from_module(module.plugin, plugin_root, plugin_name)
 
-    def init_plugins_from_module(self, module, plugin_root):
+    def init_plugins_from_module(self, module, root, name):
         """Given a module, search for plugins inside, instantiate them."""
+        # Build an overlay config based on the global config
+        plugin_config = OverlayConfigParser(parent=feedspool.config.config)
+        
+        # Try to find a config file for this plugin
+        bundle_conf_fn = os.path.join(root, 'conf', '%s.conf' % name)
+        simple_conf_fn = os.path.join(root, '%s.conf' % name)
+        for fn in (bundle_conf_fn, simple_conf_fn):
+            if os.path.isfile(fn): plugin_config.read(fn)
+
         # Search for Plugin subclasses in the module.
         for cls_name in dir(module):
 
@@ -57,9 +74,9 @@ class PluginManager:
             if type(cls) is type(Plugin) and cls != Plugin and issubclass(cls, Plugin):
 
                 # Work out the plugin root dir, instantiate it
-                self.plugins.append(cls(self, plugin_root))
-                self.log.debug("Loaded plugin %s (at %s)" % \
-                    (cls.__name__, plugin_root))
+                self.plugins.append(cls(self, root, plugin_config, name))
+                self.log.debug("Loaded plugin %s (named %s at %s)" % \
+                    (cls.__name__, name, root))
 
     def import_by_name(self, module_name, lib_dir):
         """Given a module name, attempt to load it, return module."""

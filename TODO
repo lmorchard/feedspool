@@ -1,5 +1,8 @@
 TODO
 
+* Add copyright / license info to all source files
+    * Pick a better license than ShareAndEnjoy?
+
 * How to handle "updated" entries with the same ID?  (See: Slate RSS)
 
 * Multi-process/threaded feed polling
@@ -14,8 +17,6 @@ TODO
 * See about using per-feed overlay config for setting up per-channel logging
 
 * Plugins
-    * Configuration for plugins.  Overlay with main config?
-
     * Spotlight-like BDB / shelve feed data indexer.
 
     * Make miniagg watch feed entry IDs for freshness.
@@ -27,16 +28,14 @@ TODO
     * Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
         * Feed errors logged as a feed?  404, 410, 401, misc exceptions
 
+    * Need examples of plugins using non-python implementation
+        * bin dir full of bash scripts?
+        * Perl via stdin/out or pipes?
+
     * Hooks
         * Additional hook types
-            * Munge / filter feed data after fetch
-            * Munge / filter entry data after spool
             * Need plugins which can add commands to CLI
                 * Split OPML import/export out into a plugin that does this.
-
-        * Executable files in plugin dir structure (keep it unixy / djb-esque)
-            * Offer examples where little scripts use pipes to talk to a bigger persistent process
-                * Need pipe locking?
 
 
 BLUE SKY

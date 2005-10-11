@@ -14,9 +14,6 @@ from feedspool.plugins import Plugin
 
 class CleanOldEntriesPlugin(Plugin):
 
-    # TODO: This should be specified in a config file overlaid on main config
-    MAX_ENTRY_AGE = 15 * 24 * 60 * 60 
-
     def feed_poll_start(self, subscription):
         self.all_entries = []
 
@@ -41,15 +38,22 @@ class CleanOldEntriesPlugin(Plugin):
         # Remove entries no longer found in the feed yet older than the
         # maximum age for cleanup.
         now = time.time()
+        max_entry_age = self.get_config("max_entry_age")
         delete_cnt = 0
         for fn in spool_entries:
             if fn not in self.all_entries:
-                if (now - os.stat(fn).st_mtime) > self.MAX_ENTRY_AGE:
+                if (now - os.stat(fn).st_mtime) > max_entry_age:
                     try:    
+                        self.plugin_manager.dispatch('entry_delete_start', 
+                            subscription=subscription, entry=fn)
                         os.remove(fn)
                         delete_cnt += 1
+                        self.plugin_manager.dispatch('entry_delete_end', 
+                            subscription=subscription, entry=fn)
                     except: 
                         self.log.exception("Problem cleaning entry %s" % fn)
 
-        self.log.debug("Deleted %s old entries." % delete_cnt)
+        # Squawk if any entries were deleted.
+        if delete_cnt > 0:
+            self.log.debug("Deleted %s old entries." % delete_cnt)
 
