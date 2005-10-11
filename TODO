@@ -2,39 +2,42 @@ TODO
 
 * How to handle "updated" entries with the same ID?  (See: Slate RSS)
 
-* Make miniagg watch feed entry IDs for freshness.
-
-* Popular links feed, next generation from the book
-
-* Plugin which traps XML errors, "repairs" feed with feedparser normalization, respools
-
-* Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
-
-* Feed errors logged as a feed?  404, 410, 401, misc exceptions
-
-* Configuration for plugins.  Overlay with main config?
-
-* Stale entry cleaner plugin
-    * Gets list of entries in spool
-    * Ignores entries still in the feed
-    * Deletes entries over N seconds old
-
-* Plugin hooks:
-
-    * Additional hook types
-        * Munge / filter feed data after fetch
-        * Munge / filter entry data after spool
-        * Need plugins which can add commands to CLI
-
-    * Executable files in plugin dir structure (keep it unixy / djb-esque)
-        * Offer examples where little scripts use pipes to talk to a bigger persistent process
-            * Need pipe locking?
-
-* Multi-process feed polling
-    * Process locks feed config to "claim" it for poll
-    * Plugins called single-process for poll start/end; multi-process for others.
+* Multi-process/threaded feed polling
+    * Make this multi-process polling a plugin itself
+    * Process locks feed config to "claim" it for poll?
+    * Serial events versus parallel events
+        * How would something like miniagg work?  (Wouldn't, currently.)
+        * Worker processes communicate to main process
+        * Main process calls plugin-dispatch in single-process
+            * Serializes parallel events fed in via pipes/sockets
 
 * See about using per-feed overlay config for setting up per-channel logging
+
+* Plugins
+    * Configuration for plugins.  Overlay with main config?
+
+    * Spotlight-like BDB / shelve feed data indexer.
+
+    * Make miniagg watch feed entry IDs for freshness.
+
+    * Popular links feed, next generation from the book
+
+    * Plugin which traps XML errors, "repairs" feed with feedparser normalization, respools
+
+    * Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
+        * Feed errors logged as a feed?  404, 410, 401, misc exceptions
+
+    * Hooks
+        * Additional hook types
+            * Munge / filter feed data after fetch
+            * Munge / filter entry data after spool
+            * Need plugins which can add commands to CLI
+                * Split OPML import/export out into a plugin that does this.
+
+        * Executable files in plugin dir structure (keep it unixy / djb-esque)
+            * Offer examples where little scripts use pipes to talk to a bigger persistent process
+                * Need pipe locking?
+
 
 BLUE SKY
 

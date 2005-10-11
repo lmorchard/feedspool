@@ -41,11 +41,12 @@ class Subscription:
             log.debug("Creating new spool path: %s" % self.spool_path)
             os.mkdir(self.spool_path, 0777)
 
-        self.uri     = uri
-        self.uid     = md5(uri).hexdigest()
-        self.path    = os.path.join(self.spool_path, self.uid)
-        self.feed_fn = os.path.join(self.path, config.FEED_FULL_FN)
-        self.head_fn = os.path.join(self.path, config.FEED_HEAD_FN)
+        self.uri          = uri
+        self.uid          = md5(uri).hexdigest()
+        self.path         = os.path.join(self.spool_path, self.uid)
+        self.feed_fn      = os.path.join(self.path, config.FEED_FULL_FN)
+        self.head_fn      = os.path.join(self.path, config.FEED_HEAD_FN)
+        self.entries_path = os.path.join(self.path, config.ENTRIES_DIR)
 
         self.log_debug_hnd = None
         self.log_hnd       = None
