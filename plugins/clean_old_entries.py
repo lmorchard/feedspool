@@ -12,7 +12,7 @@ import os, os.path, time
 from feedspool import config
 from feedspool.plugins import Plugin
 
-class CleanOldEntriesPlugins(Plugin):
+class CleanOldEntriesPlugin(Plugin):
 
     # TODO: This should be specified in a config file overlaid on main config
     MAX_ENTRY_AGE = 15 * 24 * 60 * 60 
