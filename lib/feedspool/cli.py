@@ -9,14 +9,16 @@ import feedspool
 
 ##########################################################################
 
-def cmd_hello():
+USAGE_TMPL = "    %(name)s %(args)s\n        %(desc)s\n"
+
+def cmd_hello(options, args):
     """Hello World|"""
     print "Hello world!"
 
     from feedspool.config import plugin_manager
     plugin_manager.dispatch("hello")
 
-def cmd_scan():
+def cmd_scan(options, args):
     """Perform a polling scan of all subscribed feeds.|"""
     from feedspool.config import plugin_manager
     plugin_manager.dispatch("scan_start")
@@ -33,7 +35,7 @@ def cmd_scan():
 
     plugin_manager.dispatch("scan_end")
 
-def cmd_info():
+def cmd_info(options, args):
     """Display metadata about a subscribed feed|<feed URI>"""
     feed_uri = args[0]
     try:
@@ -44,13 +46,13 @@ def cmd_info():
     except subscriptions.SubscriptionNotFoundException, e:
         log.error("No subscription found for %s" % args[0])        
 
-def cmd_list():
+def cmd_list(options, args):
     """List subscribed feed URIs|"""
     from feedspool import subscriptions
     sl = subscriptions.SubscriptionsList()
     for url in sl.listURIs(): log.info("%s" % url)
 
-def cmd_add():
+def cmd_add(options, args):
     """Add a subscription to the given feed URI|<feed URI>"""
     feed_uri = args[0]
     try:
@@ -66,7 +68,7 @@ def cmd_add():
         log.info("Multiple feeds found at %s" % args[0])
         for url in e.feeds: log.info("  %s" % url)
 
-def cmd_remove():
+def cmd_remove(options, args):
     """Remove a subscription to a given feed URI|<feed URI>"""
     feed_uri = args[0]
     try:
@@ -76,22 +78,6 @@ def cmd_remove():
         sl.save()
     except subscriptions.SubscriptionNotFoundException, e:
         log.error("No subscription found for %s" % args[0])        
-
-def cmd_opmlimport():
-    """Import a list of subscriptions in OPML|<OPML filename>"""
-    # Import from a given filename, or grab from STDIN
-    if len(args) > 0:
-        fin = open(args[0], 'r')
-    else:
-        fin = sys.stdin
-
-    try:
-        from feedspool import subscriptions
-        sl = subscriptions.SubscriptionsList()
-        sl.OPMLimport(fin)
-        sl.save()
-    except:
-        raise
 
 ##########################################################################
 
@@ -112,14 +98,21 @@ def main():
     # Build command usage text
     usage = "%s [<options>] <command> [<arguments>...]\n\n" % sys.argv[0]
     usage += "where <command> is one of:\n"
+
+    commands = {}
+
     for cmd_func_name in cmd_names:
         cmd       = eval(cmd_func_name)
         cmd_name  = cmd_func_name[4:]
         cmd_doc   = getattr(cmd, '__doc__', '|')
-
         (cmd_desc, cmd_args) = cmd_doc.split('|')
-        cmd_usage = cmd_name + " " + cmd_args
-        usage += "    %s %s\n        %s\n" % (cmd_name, cmd_args, cmd_desc)
+
+        commands[cmd_name] = {
+            'name' : cmd_name,
+            'call' : cmd,
+            'desc' : cmd_desc,
+            'args' : cmd_args
+        }
 
     # Process command line arguments
     parser = OptionParser(usage=usage)
@@ -148,10 +141,21 @@ def main():
     # Load up config module and configure before doing anything else
     from feedspool import config
     config.configure(options.conf)
+    from feedspool.config import plugin_manager
     
+    # Ask for and merge in commands contributed by plugins.
+    plugin_commands = plugin_manager.dispatch("cli_get_commands")
+    for cmds in plugin_commands: commands.update(cmds)
+
+    # Build usage from all commands found.
+    names = commands.keys()
+    names.sort()
+    usage += '\n'.join([ USAGE_TMPL % commands[x] for x in names])
+    parser.set_usage(usage)
+
     # Set up console logging.
     log = logging.getLogger("")
-    log_formatter     = logging.Formatter('%(message)s', '%Y-%m-%dT%H:%M:%S') 
+    log_formatter = logging.Formatter('%(message)s', '%Y-%m-%dT%H:%M:%S') 
     #log_formatter     = logging.Formatter\
     #    ('[%(asctime)s %(levelname)s %(name)s] %(message)s', 
     #     '%Y-%m-%dT%H:%M:%S')  
@@ -171,14 +175,13 @@ def main():
 
     # Find a function for the command
     try:
-        cmd_func = eval('cmd_%s' % cmd)
+        cmd_func = lambda: commands[cmd]['call'](options, args)
     except NameError:
         log.error("No such command '%s'" % cmd)
         parser.print_help()
         sys.exit(1)
 
     # Fire off the startup event, register for shutdown
-    from feedspool.config import plugin_manager
     plugin_manager.dispatch("startup")
     atexit.register(lambda: plugin_manager.dispatch("shutdown"))
 

@@ -3,6 +3,10 @@ TODO
 * Add copyright / license info to all source files
     * Pick a better license than ShareAndEnjoy?
 
+* Figure out why entries' content not showing up in miniagg (but summary is)
+
+* Don't show disclosure triangle in miniagg for entries with no content to reveal
+
 * How to handle "updated" entries with the same ID?  (See: Slate RSS)
 
 * Multi-process/threaded feed polling

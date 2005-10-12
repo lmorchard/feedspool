@@ -8,7 +8,6 @@ from cStringIO import StringIO
 from timezones import utc
 import isodate
 from httpcache import HTTPCache
-import opml
 from feedspool import config
 from feedspool.spooler import Spooler
 from feedspool.config import plugin_manager
@@ -357,12 +356,6 @@ class SubscriptionsList:
         except:
             log.exception("Unexpected error while processing subscription")
 
-    def OPMLimport(self, file=sys.stdin, find_feeds=False):
-        """Import subscriptions from an OPML file."""
-        new_items = []
-        for item in opml.read(file):
-            self._importuri(item.xmlurl, find_feeds)
-
     def fileexport(self, file=sys.stdout):
         """Export the subscriptions to a list of one uri per line"""
         for sub in self.listURIs():
@@ -375,34 +368,6 @@ class SubscriptionsList:
                 log.debug("Trying to subscribe to %s" % (uri))
                 _importuri(uri.rstrip(), find_feeds)
 
-    def OPMLexport(self, file=sys.stdout):
-        """Import subscriptions to an OPML file."""
-        subs = self.subs
-
-        op = opml.OPML()
-        op['title'] = "Subscriptions"
-
-        for sub in subs:
-            feed = sub.feed
-
-            # TODO: Make this work.  Currently broken.
-            o = opml.Outline()
-            o['text']        = feed.title
-            o['description'] = feed.description
-            o['language']    = feed.language
-            o['title']       = feed.title
-            o['type']        = feed.format
-            o['xmlurl']      = feed.uri
-
-            #xd = XPathDict(xml=feed.xml)
-            #link_nodes = xd.nodes("/a:feed/a:link[@type='text/html']")
-            #if len(link_nodes) > 0:
-            #    o['htmluri'] = link_nodes[0].prop('href')
-
-            op.outlines.append(o)
-
-        file.write('<?xml version="1.0"?>\n')
-        op.output(file)
 
 class SubscriptionDuplicateException(Exception):
     def __init__(self, uri): 

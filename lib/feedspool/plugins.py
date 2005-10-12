@@ -14,7 +14,30 @@ class Plugin:
         self.config = config
 
     def get_config(self, name):
+        """Get a config value from this plugin's section"""
         return self.config.get(self.plugin_name, name)
+
+class CLIPlugin(Plugin):
+    """Subclass for plugins adding CLI commands."""
+
+    def cli_get_commands(self):
+        """Scan this plugin instance for methods intended as commands."""
+        commands = {}
+        cmd_names = filter(lambda x: x.startswith('cmd_'), dir(self))
+        for cmd_func_name in cmd_names:
+            cmd       = getattr(self, cmd_func_name)
+            cmd_name  = cmd_func_name[4:]
+            cmd_doc   = getattr(cmd, '__doc__', '|')
+            (cmd_desc, cmd_args) = cmd_doc.split('|')
+
+            commands[cmd_name] = {
+                'name' : cmd_name,
+                'call' : cmd,
+                'desc' : cmd_desc,
+                'args' : cmd_args
+            }
+
+        return commands
 
 class PluginManager:
     """Manager of plugins, dispatcher of hook calls."""
