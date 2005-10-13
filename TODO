@@ -3,12 +3,6 @@ TODO
 * Add copyright / license info to all source files
     * Pick a better license than ShareAndEnjoy?
 
-* Figure out why entries' content not showing up in miniagg (but summary is)
-
-* Don't show disclosure triangle in miniagg for entries with no content to reveal
-
-* How to handle "updated" entries with the same ID?  (See: Slate RSS)
-
 * Multi-process/threaded feed polling
     * Make this multi-process polling a plugin itself
     * Process locks feed config to "claim" it for poll?
@@ -21,9 +15,18 @@ TODO
 * See about using per-feed overlay config for setting up per-channel logging
 
 * Plugins
-    * Spotlight-like BDB / shelve feed data indexer.
+    * Podcast / vidcast tuner with HTTP and BitTorrent
 
-    * Make miniagg watch feed entry IDs for freshness.
+    * Spotlight-like BDB / shelve feed data indexer.
+        * BDB would be better for non-python
+
+    * miniagg
+        * Figure out why entries' content not showing up in miniagg (but summary is)
+        * Don't show disclosure triangle in miniagg for entries with no content to reveal
+        * How to handle "updated" entries with the same ID?  (See: Slate RSS)
+        * Make miniagg watch feed entry IDs for freshness.
+            * Clean out "seen" records when entries deleted.
+            * Clean out "seen" records over time?
 
     * Popular links feed, next generation from the book
 
@@ -37,10 +40,7 @@ TODO
         * Perl via stdin/out or pipes?
 
     * Hooks
-        * Additional hook types
-            * Need plugins which can add commands to CLI
-                * Split OPML import/export out into a plugin that does this.
-
+        * Additional hook types?
 
 BLUE SKY
 
