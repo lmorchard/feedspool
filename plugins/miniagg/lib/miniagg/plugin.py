@@ -32,7 +32,7 @@ class MiniAggPlugin(Plugin):
         """Upon finding new entries for a feed, wrap for rendering."""
         data = feedparser.parse(subscription.head_fn)
         if 'feed' in data:
-            feed = FeedWrapper(data['feed'], new_entries, self.seen)db)
+            feed = FeedWrapper(data['feed'], new_entries, self.seen_db)
             self.feeds.append(feed)
 
     def shutdown(self):
