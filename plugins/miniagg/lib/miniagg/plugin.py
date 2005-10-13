@@ -39,7 +39,7 @@ class MiniAggPlugin(Plugin):
     def shutdown(self):
         """At the end of a scan, render out all the feeds with new entries."""
         # If no new entries were encountered, do nothing.
-        if not len(self.feeds) > 0:
+        if len(self.feeds) > 0:
 
             # Build the namespace for the template and render it.
             ns = {

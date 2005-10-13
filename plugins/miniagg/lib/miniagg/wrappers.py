@@ -26,6 +26,7 @@ class FeedWrapper:
                     self.seen_db[hash] = now_ISO()
                     self.entries.append(EntryWrapper(self.feed, entry))
                 else:
+                    self.log.debug("Seen entry %s (%s)" % ( fn, hash ) )
                     # Should note "updated" entries?
                     pass
 
