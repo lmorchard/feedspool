@@ -34,7 +34,10 @@ class MiniAggPlugin(Plugin):
         data = feedparser.parse(subscription.head_fn)
         if 'feed' in data:
             feed = FeedWrapper(data['feed'], new_entries, self.seen_db)
-            self.feeds.append(feed)
+            self.log.debug("%s fresh entries for feed, %s already seen." % \
+                ( len(feed.entries), len(feed.seen_entries) ) )
+            if len(feed.entries) > 0:
+                self.feeds.append(feed)
 
     def shutdown(self):
         """At the end of a scan, render out all the feeds with new entries."""

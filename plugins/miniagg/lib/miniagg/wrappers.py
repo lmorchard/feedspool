@@ -1,8 +1,11 @@
 """ 
 """
-import sys, time, os, os.path, feedparser, md5
+import sys, time, os, os.path, feedparser
+from md5 import md5
 from feedspool.utils import ISO_NEVER, datetime2ISO, ISO2datetime, now_datetime, now_ISO
 from templates import UNICODE_ENC, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
+
+ENTRY_HASH_KEYS = ('title', 'link')
 
 class FeedWrapper:
 
@@ -10,8 +13,9 @@ class FeedWrapper:
 
     def __init__(self, feed, entry_fns, seen_db):
         """ """
-        self.feed    = feed
-        self.entries = []
+        self.feed         = feed
+        self.entries      = []
+        self.seen_entries = []
         self.seen_db = seen_db
 
         # Parse in all the current entries.
@@ -19,15 +23,12 @@ class FeedWrapper:
             data    = feedparser.parse(fn)
             entries = data.get('entries', [])
             if len(entries) > 0:
-                entry = entries[0]
-                id    = entry.get('id', fn)
-                hash  = md5.md5(id).hexdigest()
-                if not self.seen_db.has_key(hash):
-                    self.seen_db[hash] = now_ISO()
-                    self.entries.append(EntryWrapper(self.feed, entry))
+                entry = EntryWrapper(self.feed, entries[0])
+                if not self.seen_db.has_key(entry.hash()):
+                    self.seen_db[entry.hash()] = now_ISO()
+                    self.entries.append(entry)
                 else:
-                    # Should note "updated" entries?
-                    pass
+                    self.seen_entries.append(entry)
 
         # Sort entries by date.
         self.entries.sort()
@@ -100,3 +101,11 @@ class EntryWrapper:
         # If all else fails, return an empty string.
         return ""
 
+    def hash(self):
+        """Come up with an identifying hash for the entry, more stable 
+        than contents hash."""
+        if 'id' in self.entry:
+            id = self.entry.id
+        else:
+            id = ''.join([self.entry.get(x,'') for x in (ENTRY_HASH_KEYS)])
+        return md5(id).hexdigest()
