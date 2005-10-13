@@ -9,6 +9,7 @@ from timezones import utc
 import isodate
 from httpcache import HTTPCache
 from feedspool import config
+from feedspool.utils import ISO_NEVER, datetime2ISO, ISO2datetime, now_datetime, now_ISO
 from feedspool.spooler import Spooler
 from feedspool.config import plugin_manager
 from TimeRotatingFileHandler import TimeRotatingFileHandler
@@ -19,13 +20,6 @@ from OverlayConfigParser import OverlayConfigParser
 
 global log
 log  = logging.getLogger("%s"%__name__)
-
-# Misc date/time utilities (should these go elsewhere?)
-ISO_NEVER = '1970-01-01T00:00:00+00:00'
-def datetime2ISO(dt):  return dt.replace(microsecond=0).isoformat()
-def ISO2datetime(iso): return isodate.parse_datetime(iso)
-def now_datetime():    return datetime.now(utc)
-def now_ISO():         return datetime2ISO(now_datetime())
 
 class Subscription:
     """Encapsulate details of a subscription managed in the spool."""

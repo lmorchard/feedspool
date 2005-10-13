@@ -2,6 +2,7 @@
 import sys, time, os, os.path, anydbm, feedparser
 from feedspool import config
 from feedspool.plugins import Plugin
+from feedspool.utils import ISO_NEVER, datetime2ISO, ISO2datetime, now_datetime, now_ISO
 
 from templates import UNICODE_ENC, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
 from templates import TMPL_LIST_END, TMPL_LIST_START, TMPL_INDEX_PAGE, TMPL_INDEX_PAGE_ITEM

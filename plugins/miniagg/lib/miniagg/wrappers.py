@@ -1,7 +1,7 @@
 """ 
 """
 import sys, time, os, os.path, feedparser, md5
-from feedparser.subscriptions import now_ISO
+from feedspool.utils import ISO_NEVER, datetime2ISO, ISO2datetime, now_datetime, now_ISO
 from templates import UNICODE_ENC, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
 
 class FeedWrapper:
