@@ -45,7 +45,7 @@ class TimeRotatingFileHandler(logging.FileHandler):
             self.stream.close()
             del self.stream
         self.filename = new_filename
-        self.stream   = open(self.filename, "w")
+        self.stream   = open(self.filename, "a")
         #os.chmod(self.filename, 0664)
 
     def emit(self, record):
