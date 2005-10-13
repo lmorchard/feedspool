@@ -1,23 +1,33 @@
 """ 
 """
-import sys, time, os, os.path, feedparser
+import sys, time, os, os.path, feedparser, md5
+from feedparser.subscriptions import now_ISO
 from templates import UNICODE_ENC, TMPL_NEWS_PAGE, TMPL_NEWS_FEED, TMPL_NEWS_ENTRY
 
 class FeedWrapper:
 
     TMPL_NEWS_FEED  = TMPL_NEWS_FEED
 
-    def __init__(self, feed, entry_fns):
+    def __init__(self, feed, entry_fns, seen_db):
         """ """
         self.feed    = feed
         self.entries = []
+        self.seen_db = seen_db
 
         # Parse in all the current entries.
         for fn in entry_fns:
             data    = feedparser.parse(fn)
             entries = data.get('entries', [])
             if len(entries) > 0:
-                self.entries.append(EntryWrapper(self.feed, entries[0]))
+                entry = entries[0]
+                id    = entry.get('id', fn)
+                hash  = md5.md5(id).hexdigest()
+                if not self.seen_db.has_key(hash):
+                    self.seen_db[hash] = now_ISO()
+                    self.entries.append(EntryWrapper(self.feed, entry))
+                else:
+                    # Should note "updated" entries?
+                    pass
 
         # Sort entries by date.
         self.entries.sort()

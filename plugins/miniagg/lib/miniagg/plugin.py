@@ -1,5 +1,5 @@
 """ """
-import sys, time, os, os.path, feedparser
+import sys, time, os, os.path, anydbm, feedparser
 from feedspool import config
 from feedspool.plugins import Plugin
 
@@ -11,6 +11,8 @@ from wrappers  import FeedWrapper, EntryWrapper
 
 NEWS_PAGE_FN = "%Y/%m/%d/%H%M%S.html"
 
+SEEN_DB_FN   = "data/seen.db"
+
 class MiniAggPlugin(Plugin):
 
     NEWS_PAGE_FN         = NEWS_PAGE_FN
@@ -21,20 +23,22 @@ class MiniAggPlugin(Plugin):
     TMPL_INDEX_PAGE      = TMPL_INDEX_PAGE
     TMPL_INDEX_PAGE_ITEM = TMPL_INDEX_PAGE_ITEM
 
-    def scan_start(self):
+    def startup(self):
         """At start of scan, initialize for aggregation."""
-        self.feeds = []
+        self.feeds   = []
+        self.seen_db = anydbm.open(os.path.join(self.plugin_root, SEEN_DB_FN), 'c')
 
     def feed_new_entries(self, subscription, new_entries, all_entries):
         """Upon finding new entries for a feed, wrap for rendering."""
         data = feedparser.parse(subscription.head_fn)
         if 'feed' in data:
-            feed = FeedWrapper(data['feed'], new_entries)
+            feed = FeedWrapper(data['feed'], new_entries, self.seen)db)
             self.feeds.append(feed)
 
-    def scan_end(self):
+    def shutdown(self):
         """At the end of a scan, render out all the feeds with new entries."""
-        if len(self.feeds) > 0:
+        # If no new entries were encountered, do nothing.
+        if not len(self.feeds) > 0:
 
             # Build the namespace for the template and render it.
             ns = {
@@ -58,8 +62,10 @@ class MiniAggPlugin(Plugin):
             
             self.log.debug("Wrote %s" % fn_out)
 
-        # Index the news pages and produce nav HTML.
-        self.index_news()
+            # Index the news pages and produce nav HTML.
+            self.index_news()
+
+        self.seen_db.close()
 
     def index_news(self):
         pages = []
