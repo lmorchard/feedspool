@@ -115,8 +115,16 @@ class Subscription:
             force_scan, veto_scan = \
                 plugin_manager.decide("feed_should_scan", subscription=self)
 
-            # Is it time for the next poll?
-            if (force_scan or now > self.meta.get('scan', 'next_poll')) and not veto_scan:
+            # Is it time to poll?  Is this subscription not disabled?
+            time_for_poll = now > self.meta.get('scan', 'next_poll')
+            scan_enabled  = not self.meta.get('scan', 'disabled')
+
+            # We should poll if it's not vetoed and if it's forced, or 
+            # it's enabled and due for a poll
+            # TODO: Should veto take precedence over force?
+            should_poll = not veto_scan and \
+                          (force_scan or (scan_enabled and time_for_poll))
+            if should_poll:
                 self.meta.set('scan', 'last_polled', now)
                 self.log.debug("Polling %s" % self.uri)
                 plugin_manager.dispatch("feed_poll_start", subscription=self)
