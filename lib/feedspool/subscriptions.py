@@ -111,7 +111,7 @@ class Subscription:
 
             # Is it time to poll?  Is this subscription not disabled?
             time_for_poll = now > self.meta.get('scan', 'next_poll')
-            scan_enabled  = not self.meta.get('scan', 'disabled')
+            scan_enabled  = not self.meta.getboolean('scan', 'disabled')
 
             # We should poll if it's not vetoed and if it's forced, or 
             # it's enabled and due for a poll
