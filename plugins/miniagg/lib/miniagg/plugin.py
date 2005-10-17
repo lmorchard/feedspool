@@ -12,19 +12,11 @@ from wrappers  import FeedWrapper, EntryWrapper
 
 NEWS_PAGE_FN = "%Y/%m/%d/%H%M%S.html"
 
-SEEN_DB_FN   = "data/seen.db"
+SEEN_DB_FN   = "data/seen"
 
 class MiniAggPlugin(Plugin):
 
-    NEWS_PAGE_FN         = NEWS_PAGE_FN
-    TMPL_MAIN_PAGE       = TMPL_MAIN_PAGE
-    TMPL_NEWS_PAGE       = TMPL_NEWS_PAGE
-    TMPL_LIST_END        = TMPL_LIST_END
-    TMPL_LIST_START      = TMPL_LIST_START
-    TMPL_INDEX_PAGE      = TMPL_INDEX_PAGE
-    TMPL_INDEX_PAGE_ITEM = TMPL_INDEX_PAGE_ITEM
-
-    def startup(self):
+    def scan_start(self):
         """At start of scan, initialize for aggregation."""
         self.feeds   = []
         self.seen_db = anydbm.open(os.path.join(self.plugin_root, SEEN_DB_FN), 'c')
@@ -34,12 +26,12 @@ class MiniAggPlugin(Plugin):
         data = feedparser.parse(subscription.head_fn)
         if 'feed' in data:
             feed = FeedWrapper(data['feed'], new_entries, self.seen_db)
-            self.log.debug("%s fresh entries for feed, %s already seen." % \
-                ( len(feed.entries), len(feed.seen_entries) ) )
             if len(feed.entries) > 0:
                 self.feeds.append(feed)
+            self.log.debug("%s fresh entries for feed, %s already seen." % \
+                ( len(feed.entries), len(feed.seen_entries) ) )
 
-    def shutdown(self):
+    def scan_end(self):
         """At the end of a scan, render out all the feeds with new entries."""
         # If no new entries were encountered, do nothing.
         if len(self.feeds) > 0:
@@ -49,10 +41,10 @@ class MiniAggPlugin(Plugin):
                 'now'   : time.strftime('%Y-%m-%dT%H:%M:%S'),
                 'feeds' : '\n'.join([str(x) for x in self.feeds])
             }
-            out = self.TMPL_NEWS_PAGE % ns
+            out = TMPL_NEWS_PAGE % ns
 
             # Work out the output file path.
-            fn_out   = time.strftime(self.NEWS_PAGE_FN)
+            fn_out   = time.strftime(NEWS_PAGE_FN)
             path_out = os.path.join(self.plugin_root, 'www', fn_out)
 
             # Create the leading directories, if necessary
