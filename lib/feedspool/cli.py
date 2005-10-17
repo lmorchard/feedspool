@@ -1,6 +1,7 @@
 """Command-line interface to FeedSpool"""
 
-import os, os.path, sys, logging, logging.config, ConfigParser, re, atexit
+import os, os.path, sys, logging, logging.config, ConfigParser, re, atexit, time
+import threading
 from cStringIO import StringIO
 from optparse import OptionParser
 from datetime import datetime, timedelta
@@ -183,7 +184,6 @@ def main():
 
     # Fire off the startup event, register for shutdown
     plugin_manager.dispatch("startup")
-    atexit.register(lambda: plugin_manager.dispatch("shutdown"))
 
     # Execute the chosen command
     try:
@@ -199,3 +199,11 @@ def main():
         log.error("Error: %s" % e)
         parser.print_help()
         sys.exit(1)
+
+    plugin_manager.dispatch("shutdown")
+
+    # Hang out while threads wind down.
+    while threading.activeCount() > 0: 
+        time.sleep(5)
+        log.debug("Waiting for threads to end...")
+
