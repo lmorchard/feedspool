@@ -13,9 +13,12 @@ class Plugin:
         self.plugin_name = plugin_name
         self.config = config
 
-    def get_config(self, name):
+    def get_config(self, name, default=None):
         """Get a config value from this plugin's section"""
-        return self.config.get(self.plugin_name, name)
+        try:
+            return self.config.get(self.plugin_name, name)
+        except:
+            return default
 
 class CLIPlugin(Plugin):
     """Subclass for plugins adding CLI commands."""
