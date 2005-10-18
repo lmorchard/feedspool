@@ -120,7 +120,7 @@ class Subscription:
                           (force_scan or (scan_enabled and time_for_poll))
             if should_poll:
                 self.meta.set('scan', 'last_polled', now)
-                self.log.debug("Polling %s" % self.uri)
+                self.log.info("Polling %s" % self.uri)
                 plugin_manager.dispatch("feed_poll_start", subscription=self)
 
                 found_new_entries = False
@@ -158,7 +158,7 @@ class Subscription:
         if len(new_entries) > 0:
             found_new_entries = True
             self.meta.set('scan', 'last_updated', now_ISO())
-            self.log.debug("Found %s new entries." % \
+            self.log.info("Found %s entry updates." % \
                 len(new_entries))
             plugin_manager.dispatch("feed_new_entries", 
                 subscription=self, new_entries=new_entries, all_entries=all_entries)
@@ -329,6 +329,7 @@ class SubscriptionsList:
 
     def remove(self, uri):
         """Remove a subscription to a feed."""
+        # TODO: Delete spool data when removing a subscription?
         if not uri in self.listURIs():
             raise SubscriptionNotFoundException(uri)
         doomed_subs = [ x for x in self.subs if x.uri == uri ]
