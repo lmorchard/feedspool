@@ -13,16 +13,24 @@ class Plugin:
         self.plugin_name = plugin_name
         self.config = config
 
+        if not self.isEnabled():
+            self.log.info("%s is disabled."%self.plugin_name)
+
     def get_config(self, name, default=None):
         """Get a config value from this plugin's section"""
-        try:
-            return self.config.get(self.plugin_name, name)
-        except:
-            return default
+        try: return self.config.get(self.plugin_name, name)
+        except: return default
+
+    def get_config_boolean(self, name, default=False):
+        """Get a config value from this plugin's section"""
+        try: return self.config.getboolean(self.plugin_name, name)
+        except: return default
+
+    def isEnabled(self):
+        return self.get_config_boolean("enabled", True)
 
 class CLIPlugin(Plugin):
     """Subclass for plugins adding CLI commands."""
-
     def cli_get_commands(self):
         """Scan this plugin instance for methods intended as commands."""
         commands = {}
@@ -129,7 +137,9 @@ class PluginManager:
     def dispatch(self, meth_name, **kw):
         """Fire off a message and args to all plugins listening for it."""
         returns = []
-        for plugin in self.plugins:
+        enabled_plugins = \
+            [ x for x in self.plugins if x.isEnabled() ]
+        for plugin in enabled_plugins:
             if hasattr(plugin, meth_name):
                 try:
                     rv = getattr(plugin, meth_name)(**kw)
