@@ -94,22 +94,6 @@ class Subscription:
         # Save the subscription metadata
         self.meta.write(open(self.meta_fn, 'w'))
 
-    def shouldPoll(self):
-        now = now_ISO()
-
-        # Does any plugin want to force or veto a scan?
-        force_scan, veto_scan = \
-            plugin_manager.decide("feed_should_scan", subscription=self)
-
-        # Is it time to poll?  Is this subscription not disabled?
-        time_for_poll = now > self.meta.get('scan', 'next_poll')
-        scan_enabled  = not self.meta.getboolean('scan', 'disabled')
-
-        # We should poll if it's not vetoed and if it's forced, or 
-        # it's enabled and due for a poll
-        # TODO: Should veto take precedence over force?
-        return veto_scan and (force_scan or (scan_enabled and time_for_poll))
-
     def scan(self):
         """Scan the subscribed feed for any updates, spool new entries."""
         #self.startLogging()
@@ -121,7 +105,20 @@ class Subscription:
             now = now_ISO()
             self.meta.set('scan', 'last_scanned', now)
 
-            if self.shouldPoll():
+            # Does any plugin want to force or veto a scan?
+            force_scan, veto_scan = \
+                plugin_manager.decide("feed_should_scan", subscription=self)
+
+            # Is it time to poll?  Is this subscription not disabled?
+            time_for_poll = now > self.meta.get('scan', 'next_poll')
+            scan_enabled  = not self.meta.getboolean('scan', 'disabled')
+
+            # We should poll if it's not vetoed and if it's forced, or 
+            # it's enabled and due for a poll
+            # TODO: Should veto take precedence over force?
+            should_poll = not veto_scan and \
+                          (force_scan or (scan_enabled and time_for_poll))
+            if should_poll:
                 self.meta.set('scan', 'last_polled', now)
                 self.log.debug("Polling %s" % self.uri)
                 plugin_manager.dispatch("feed_poll_start", subscription=self)
@@ -161,7 +158,7 @@ class Subscription:
         if len(new_entries) > 0:
             found_new_entries = True
             self.meta.set('scan', 'last_updated', now_ISO())
-            self.log.debug("Found %s entry updates." % \
+            self.log.debug("Found %s new entries." % \
                 len(new_entries))
             plugin_manager.dispatch("feed_new_entries", 
                 subscription=self, new_entries=new_entries, all_entries=all_entries)
