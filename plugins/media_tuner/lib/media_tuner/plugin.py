@@ -45,8 +45,8 @@ class MediaTunerPlugin(Plugin):
                 (len(enclosures), max_downloads))
             for e in enclosures[:max_downloads]:
                 url = e['url']
-                #dl  = HTTPDownloader()
-                dl  = NullDownloader()
+                dl  = HTTPDownloader()
+                #dl  = NullDownloader()
                 job = Job(url, dl.downloadURL, dest_path, url)
                 self.job_queue.append(job)
 
