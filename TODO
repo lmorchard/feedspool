@@ -1,5 +1,8 @@
 TODO
 
+* Properly implement subscription removal.  (Delete all associated files?)
+    * Write a plugin which archives before deletion.
+
 * Add copyright / license info to all source files
     * Pick a better license than ShareAndEnjoy?
 
