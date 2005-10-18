@@ -15,6 +15,9 @@ DOWNLOADS_PATH   = "downloads"
 
 class MediaTunerPlugin(Plugin):
 
+    def startup(self):
+        self.job_queue = None
+
     def scan_start(self):
         """Start up the downloader job queue at the start of a scan."""
         pool_size = self.get_config("job_queue_size", THREAD_POOL_SIZE)
@@ -35,24 +38,29 @@ class MediaTunerPlugin(Plugin):
         for entry_fn in new_entries:
             enclosures.extend(parser.parse(entry_fn))
         
-        # Build a list of downloader jobs based on the enclosures found.
+        # Build and queue up downloader jobs based on the enclosures found.
         # TODO: Should limit enclosures in date order?
-        jobs = []
-        for e in enclosures[:max_downloads]:
-            url    = e['url']
-            #dl_cls = NullDownloader
-            dl_cls = HTTPDownloader
-            jobs.append(Job(url, dl_cls().downloadURL, dest_path, url))
-
-        # If there were any jobs, queue them and note the downloads.
-        if jobs: 
-            self.job_queue.queueJobs(jobs)
+        if enclosures:
             self.log.info("Found %s enclosures, downloading %s at max." % \
                 (len(enclosures), max_downloads))
+            for e in enclosures[:max_downloads]:
+                url = e['url']
+                #dl  = HTTPDownloader()
+                dl  = NullDownloader()
+                job = Job(url, dl.downloadURL, dest_path, url)
+                self.job_queue.append(job)
 
     def scan_end(self):
         """Signal the job queue to stop when empty at the end of a scan."""
         self.job_queue.setStopWhenEmpty(True)
+    
+    def shutdown(self):
+        """At shutdown, hang out until the job queue has finished."""
+        if self.job_queue:
+            self.log.info("Waiting for download queue to finish.")
+            while self.job_queue.isAlive(): 
+                self.log.debug("Still waiting for download queue to finish.")
+                time.sleep(5.0)    
 
 class EnclosureParser(SGMLParser):
     """Simple-minded enclosure parser, looks for <enclosure/> elements."""
