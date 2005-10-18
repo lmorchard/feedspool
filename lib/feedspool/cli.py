@@ -176,8 +176,9 @@ def main():
 
     # Find a function for the command
     try:
-        cmd_func = lambda: commands[cmd]['call'](options, args)
-    except NameError:
+        cmd_func      = commands[cmd]['call']
+        cmd_with_args = lambda: cmd_func(options, args)
+    except (NameError, KeyError), e:
         log.error("No such command '%s'" % cmd)
         parser.print_help()
         sys.exit(1)
@@ -190,10 +191,10 @@ def main():
         if options.profile:
             from profile import Profile
             p = Profile()
-            p.runcall(cmd_func)
+            p.runcall(cmd_with_args)
             p.dump_stats(options.profile)
         else:
-            cmd_func()
+            cmd_with_args()
 
     except CmdException, e:
         log.error("Error: %s" % e)
@@ -201,9 +202,4 @@ def main():
         sys.exit(1)
 
     plugin_manager.dispatch("shutdown")
-
-    # Hang out while threads wind down.
-    while threading.activeCount() > 0: 
-        time.sleep(5)
-        log.debug("Waiting for threads to end...")
 
