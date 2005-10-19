@@ -77,7 +77,7 @@ class HTTPDownloader:
 try:
     # This code is liberally lifted from bittorrent-console.py
 
-    import threading
+    import threading, thread
     from time import time, strftime
     from cStringIO import StringIO
     from BitTorrent.download import Feedback, Multitorrent
@@ -94,7 +94,7 @@ try:
 
     class BitTorrentDownloader:
         """This provides a BitTorrent-based content downloader."""
-        
+    
         def __init__(self):
             self.log  = logging.getLogger("%s"%self.__class__.__name__)
 
@@ -108,7 +108,8 @@ try:
                 'display_interval':         10,
                 'max_upload_rate':          8,
                 'start_trackerless_client': True,
-                'spew':                     False
+                'spew':                     False,
+                'max_startup_wait':         2 * 60
             }
 
             try:
@@ -297,6 +298,7 @@ try:
             self.doneflag = threading.Event()
             self.metainfo = metainfo
             self.config   = Preferences().initWithDict(config)
+            self.started_downloading = False
 
         def run(self):
             self.d = HeadlessDisplayer(self.doneflag)
@@ -318,14 +320,26 @@ try:
 
             self.get_status()
             #self.multitorrent.rawserver.install_sigint_handler()
-            self.multitorrent.rawserver.listen_forever()
+            #self.multitorrent.rawserver.listen_forever()
+            start_time = time()
+            ret = 0
+            rsvr = self.multitorrent.rawserver
+            while not rsvr.doneflag.isSet() and not ret:
+                ret = rsvr.listen_once()
+                if not self.started_downloading and \
+                        (time()-start_time) > self.config['max_startup_wait']:
+                    self.log.info("Torrent took too long to start downloading")
+                    break
+
             self.d.display({'activity':_("shutting down"), 'fractionDone':0})
             self.torrent.shutdown()
 
         def get_status(self):
-            self.multitorrent.rawserver.add_task(self.get_status,
-                                                 self.config['display_interval'])
+            self.multitorrent.rawserver.add_task\
+                (self.get_status, self.config['display_interval'])
             status = self.torrent.get_status(self.config['spew'])
+            if not self.started_downloading and status.get('downRate',0) > 0:
+                self.started_downloading = True
             self.d.display(status)
 
         def global_error(self, level, text):    self.d.error(text)
