@@ -38,7 +38,7 @@ class MediaTunerPlugin(Plugin):
             dest_path = os.path.join(self.plugin_root, dest_path)
 
         # How many downloads per scan should be picked up.
-        max_downloads = self.get_config("max_scan_downloads", self.MAX_DOWNLOADS)
+        max_downloads = self.get_config_int("max_scan_downloads", self.MAX_DOWNLOADS)
         
         # Parse for enclosures in the new feed entries.
         enclosures, parser = [], EnclosureParser()
