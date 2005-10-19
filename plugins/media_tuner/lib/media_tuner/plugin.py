@@ -18,7 +18,7 @@ except ImportError:
 class MediaTunerPlugin(Plugin):
 
     DOWNLOADER_POOL_SIZE = 7
-    SHUTDOWN_WAIT        = 10.0
+    SHUTDOWN_WAIT        = 20.0
     MAX_DOWNLOADS        = 3
     DOWNLOADS_PATH       = "downloads"
 
@@ -27,7 +27,7 @@ class MediaTunerPlugin(Plugin):
 
     def scan_start(self):
         """Start up the downloader job queue at the start of a scan."""
-        pool_size = self.get_config("job_queue_size", self.DOWNLOADER_POOL_SIZE)
+        pool_size = self.get_config_int("job_queue_size", self.DOWNLOADER_POOL_SIZE)
         self.job_queue = JobQueue(pool_size)
 
     def feed_new_entries(self, subscription, new_entries, all_entries):
