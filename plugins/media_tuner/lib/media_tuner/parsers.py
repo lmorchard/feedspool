@@ -1,7 +1,7 @@
-"""Simple-minded enclosure parser, looks for <enclosure/> elements."""
 from sgmllib import SGMLParser
 
 class EnclosureParser(SGMLParser):
+    """Simple-minded enclosure parser, looks for <enclosure/> elements."""
 
     def parse(self, fn):
         """Parse an entry/feed, return a list of dicts of enclosures."""

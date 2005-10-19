@@ -7,7 +7,7 @@ from feedspool.plugins import Plugin
 
 from ThreadedJobQueue import JobQueue, Job
 
-from enclosureparser import EnclosureParser
+from parsers import EnclosureParser
 from downloaders import NullDownloader, HTTPDownloader
 
 try:
