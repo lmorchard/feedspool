@@ -21,8 +21,13 @@ class Plugin:
         try: return self.config.get(self.plugin_name, name)
         except: return default
 
+    def get_config_int(self, name, default=0):
+        """Get a config int value from this plugin's section"""
+        try: return self.config.getint(self.plugin_name, name)
+        except: return default
+
     def get_config_boolean(self, name, default=False):
-        """Get a config value from this plugin's section"""
+        """Get a config boolean value from this plugin's section"""
         try: return self.config.getboolean(self.plugin_name, name)
         except: return default
 
