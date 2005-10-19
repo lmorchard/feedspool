@@ -61,6 +61,7 @@ def cmd_add(options, args):
         sl = subscriptions.SubscriptionsList()
         sl.add(feed_uri)
         sl.save()
+        log.info("Subscribed to %s" % args[0])
     except subscriptions.SubscriptionDuplicateException, e:
         log.error("Already subscribed to %s" % args[0])        
     except subscriptions.SubscriptionFeedNotFoundException, e:

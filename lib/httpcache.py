@@ -135,7 +135,13 @@ class HTTPCache:
         if response.info().get('content-encoding', None) == 'gzip':
             import StringIO
             zip_content = response.read()
-            content = gzip.GzipFile(fileobj=StringIO.StringIO(zip_content)).read()
+            try:
+                content = gzip.GzipFile(fileobj=StringIO.StringIO(zip_content)).read()
+            except IOError, e:
+                if str(e) == "Not a gzipped file":
+                    content = zip_content
+                else:
+                    raise
             f.write(content)
         else:
             content = response.read()

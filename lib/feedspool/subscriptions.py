@@ -96,7 +96,7 @@ class Subscription:
 
     def scan(self):
         """Scan the subscribed feed for any updates, spool new entries."""
-        #self.startLogging()
+        self.startLogging()
         self.save() # HACK: Pre-save to ensure directories created
         plugin_manager.dispatch("feed_scan_start", subscription=self)
 
@@ -143,7 +143,7 @@ class Subscription:
             # Save any changes to the subscription, stop logging.
             plugin_manager.dispatch("feed_scan_end", subscription=self)
             self.save()
-            #self.stopLogging()
+            self.stopLogging()
 
     def spool(self):
         """Process feed data, spool off any new entries."""

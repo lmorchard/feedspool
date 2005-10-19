@@ -107,7 +107,7 @@ class JobQueue:
     def submitException(self, worker, job, result):
         """Called by a worker to submit result back to the queue."""
         self.failed_jobs.put((job, result))
-        self.log.error("Job failed: %s because of %s" % (job, result))
+        self.log.error("Job failed: %s because of %s" % (job, result), exc_info=1)
 
 class Worker(threading.Thread):
 
