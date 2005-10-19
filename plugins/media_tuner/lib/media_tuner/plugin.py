@@ -1,13 +1,13 @@
 """This plugin provides feed enclosure download support, with HTTP and 
 BitTorrent downloaders available.
 """
-import sys, os, os.path, logging, time
+import sys, os, os.path, logging, time, re
 from feedspool import config
 from feedspool.plugins import Plugin
 
 from ThreadedJobQueue import JobQueue, Job
 
-from parsers import EnclosureParser
+from parsers import FeedMetaParser, EnclosureParser
 from downloaders import NullDownloader, HTTPDownloader
 
 try:
@@ -32,10 +32,26 @@ class MediaTunerPlugin(Plugin):
 
     def feed_new_entries(self, subscription, new_entries, all_entries):
         """On new entries, scan for enclosures and schedule downloads."""
+        # Come up with a sub-path for this feed's media downloads
+        # TODO: Make feed title based download paths an option?  Per-feed config?
+        feed_meta = FeedMetaParser().parse(subscription.head_fn)
+        feed_meta['uid'] = subscription.uid
+        for k in ('title', 'link', 'uid'):
+            try: 
+                title = feed_meta[k]
+                break
+            except KeyError: 
+                pass
+        title_path = re.sub('[^0-9A-Za-z.]+', '-', title)
+
         # Work out the destination path for downloads.
         dest_path = self.get_config("download_path", self.DOWNLOADS_PATH)
+        dest_path = os.path.join(dest_path, title_path)
         if not dest_path.startswith('/'):
             dest_path = os.path.join(self.plugin_root, dest_path)
+
+        # Create download path, if necessary.
+        if not os.path.isdir(dest_path): os.makedirs(dest_path)
 
         # How many downloads per scan should be picked up.
         max_downloads = self.get_config_int("max_scan_downloads", self.MAX_DOWNLOADS)
