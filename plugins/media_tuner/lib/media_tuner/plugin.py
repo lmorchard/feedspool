@@ -20,7 +20,8 @@ class MediaTunerPlugin(Plugin):
     DOWNLOADER_POOL_SIZE = 7
     SHUTDOWN_WAIT        = 20.0
     MAX_DOWNLOADS        = 3
-    DOWNLOADS_PATH       = "downloads"
+    DOWNLOADS_PATH_TMPL  = \
+        'downloads/%(year)s-%(mon)s-%(mday)s/%(title_path)s'
 
     def startup(self):
         self.job_queue = None
@@ -33,7 +34,8 @@ class MediaTunerPlugin(Plugin):
     def feed_new_entries(self, subscription, new_entries, all_entries):
         """On new entries, scan for enclosures and schedule downloads."""
         # Parse for enclosures in the new feed entries.
-        enclosures, parser = [], EnclosureParser()
+        parser     = EnclosureParser()
+        enclosures = [] 
         for entry_fn in new_entries:
             enclosures.extend(parser.parse(entry_fn))
         
@@ -41,33 +43,18 @@ class MediaTunerPlugin(Plugin):
         # TODO: Should limit enclosures in date order?
         if enclosures:
 
-            # Come up with a sub-path for this feed's media downloads
-            # TODO: Make feed title based download paths an option?  Per-feed config?
-            feed_meta = FeedMetaParser().parse(subscription.head_fn)
-            feed_meta['uid'] = subscription.uid
-            for k in ('title', 'link', 'uid'):
-                try: 
-                    title = feed_meta[k]
-                    break
-                except KeyError: 
-                    pass
-            title_path = re.sub('[^0-9A-Za-z.]+', '-', title)
-
-            # Work out the destination path for downloads.
-            # TODO: Obey a per-feed config setting for download path.
-            dest_path = self.get_config("download_path", self.DOWNLOADS_PATH)
-            dest_path = os.path.join(dest_path, title_path)
-            if not dest_path.startswith('/'):
-                dest_path = os.path.join(self.plugin_root, dest_path)
+            # Create download path, if necessary.
+            dest_path = self._build_dest_path(subscription)
+            if not os.path.isdir(dest_path): os.makedirs(dest_path)
+            self.log.debug("Download destination is %s" % dest_path)
 
             # How many downloads per scan should be picked up.
-            max_downloads = self.get_config_int("max_scan_downloads", self.MAX_DOWNLOADS)
-        
-            # Create download path, if necessary.
-            if not os.path.isdir(dest_path): os.makedirs(dest_path)
-
+            max_downloads = self.get_config_int("max_scan_downloads", \
+                self.MAX_DOWNLOADS)
             self.log.info("Found %s enclosures, downloading %s at max." % \
                 (len(enclosures), max_downloads))
+
+            # Process the enclosures found in the feed.
             for e in enclosures[:max_downloads]:
                 url = e['url']
                 if e.get('type','') == "application/x-bittorrent" or \
@@ -90,4 +77,44 @@ class MediaTunerPlugin(Plugin):
             while self.job_queue.isAlive(): 
                 self.log.debug("Still waiting for download queue to finish.")
                 time.sleep(self.SHUTDOWN_WAIT)    
+
+    def _build_dest_path(self, subscription):
+        """Build a destination path from a template.
+
+        Available string template keys are:
+        
+        * title_path - The feed's title massaged into something safe 
+            as a folder name.
+
+        * Keys based on the current time:
+            * year, mon, mday, hour, min, sec, wday, yday, isdst
+        """
+        # Come up with a sub-path for this feed's media downloads
+        # TODO: Make feed title based download paths an option?
+        # TODO: Obey a per-feed config setting for download path.
+        feed_meta = FeedMetaParser().parse(subscription.head_fn)
+        feed_meta['uid'] = subscription.uid
+        for k in ('title', 'link', 'uid'):
+            try: 
+                title = feed_meta[k]
+                break
+            except KeyError: 
+                pass
+        title_path = re.sub('[^0-9A-Za-z.]+', '-', title)
+        tm_tup = time.localtime()
+
+        fn_ns  = {
+            'title_path': title_path,
+            'year':tm_tup[0], 'mon':tm_tup[1],  'mday':tm_tup[2],
+            'hour':tm_tup[3], 'min':tm_tup[4],  'sec':tm_tup[5],
+            'wday':tm_tup[6], 'yday':tm_tup[7], 'isdst':tm_tup[8]
+        }
+
+        # Work out the destination path for downloads.
+        tmpl = self.get_config("downloads_path", self.DOWNLOADS_PATH_TMPL)
+        dest_path = tmpl % fn_ns
+        if not dest_path.startswith('/'):
+            dest_path = os.path.join(self.plugin_root, dest_path)
+
+        return dest_path
 

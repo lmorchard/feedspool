@@ -1,25 +1,10 @@
 from sgmllib import SGMLParser
 
 def main():
-    import sys, os.path, re
+    import sys, os.path, re, time
     fn = sys.argv[1]
-    meta = FeedMetaParser().parse(fn)
-    x, ignore          = os.path.split(fn)
-    ignore, meta['fn'] = os.path.split(x)
-
-    for k in ('title', 'link', 'fn'):
-        try: 
-            title = meta[k]
-            break
-        except KeyError: 
-            pass
-    
-    fixed_title = re.sub('[^0-9A-Za-z.]+', '-', title)
-
-    print 'TITLE: %s' % title
-    print 'FIXED: %s' % fixed_title
-
-    #print '\n'.join(['[%s]: %s' % (k,v.strip()) for k,v in meta.items()])
+    feed_meta = FeedMetaParser().parse(fn)
+    print feed_meta
 
 class FeedMetaParser(SGMLParser):
     """Very stupid feed metadata parser."""
