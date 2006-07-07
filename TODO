@@ -1,5 +1,7 @@
 TODO
 
+* Upgrade to httplib2 (http://bitworking.org/projects/httplib2/)
+
 * Properly implement subscription removal.  (Delete all associated files?)
     * Write a plugin which archives before deletion.
 
@@ -7,36 +9,32 @@ TODO
     * Pick a better license than ShareAndEnjoy?
 
 * Multi-process/threaded feed polling
-    * Make this multi-process polling a plugin itself
-    * Process locks feed config to "claim" it for poll?
-    * Serial events versus parallel events
-        * How would something like miniagg work?  (Wouldn't, currently.)
-        * Worker processes communicate to main process
-        * Main process calls plugin-dispatch in single-process
-            * Serializes parallel events fed in via pipes/sockets
+    * Must make plugin hook calls serially in main thread
+    * Only multi-thread fetches?  or also spooling?
 
 * See about using per-feed overlay config for setting up per-channel logging
 
 * Plugins
-    * Podcast / vidcast tuner with HTTP and BitTorrent
+
+    * Popular links feed, next generation from the book
+
+    * Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
+        * Feed errors logged as a feed?  404, 410, 401, misc exceptions
 
     * Spotlight-like BDB / shelve feed data indexer.
         * BDB would be better for non-python
 
+    * Pre-scan feed scraper using libxslt_web?
+        * http://www.mnot.net/python/libxslt_web.py
+
     * miniagg
         * Figure out why entries' content not showing up in miniagg (but summary is)
         * Don't show disclosure triangle in miniagg for entries with no content to reveal
-        * How to handle "updated" entries with the same ID?  (See: Slate RSS)
         * Make miniagg watch feed entry IDs for freshness.
             * Clean out "seen" records when entries deleted.
             * Clean out "seen" records over time?
 
-    * Popular links feed, next generation from the book
-
     * Plugin which traps XML errors, "repairs" feed with feedparser normalization, respools
-
-    * Plugin to auto-disable / report bad feeds, 404 feeds, other HTTP errors
-        * Feed errors logged as a feed?  404, 410, 401, misc exceptions
 
     * Need examples of plugins using non-python implementation
         * bin dir full of bash scripts?

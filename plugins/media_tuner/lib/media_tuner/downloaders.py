@@ -76,6 +76,8 @@ class HTTPDownloader:
 # in case it is, the following will define a downloader which uses it.
 try:
     # This code is liberally lifted from bittorrent-console.py
+    # TODO: Work on much simplifying this stuff
+    # TODO: Control seeding time / total xfer
 
     import threading, thread
     from time import time, strftime
@@ -174,10 +176,6 @@ try:
             upRate = statistics.get('upRate')
             spew = statistics.get('spew')
 
-            #print '\n\n\n\n'
-            #if spew is not None:
-            #    self.print_spew(spew)
-
             if timeEst is not None:
                 self.timeEst = fmttime(timeEst)
             elif activity is not None:
@@ -234,62 +232,6 @@ try:
                 "(seeds:%(seedStatus)s) (peers:%(peerStatus)s)"
 
             self.log.info(msg % out)
-
-            """
-            print _("saving:        "), self.file
-            print _("file size:     "), self.fileSize
-            print _("percent done:  "), self.percentDone
-            print _("time left:     "), self.timeEst
-            print _("download to:   "), self.downloadTo
-            print _("download rate: "), self.downRate
-            print _("upload rate:   "), self.upRate
-            print _("share rating:  "), self.shareRating
-            print _("seed status:   "), self.seedStatus
-            print _("peer status:   "), self.peerStatus
-            """
-
-        def print_spew(self, spew):
-            s = StringIO()
-            s.write('\n\n\n')
-            for c in spew:
-                s.write('%20s ' % c['ip'])
-                if c['initiation'] == 'L':
-                    s.write('l')
-                else:
-                    s.write('r')
-                total, rate, interested, choked = c['upload']
-                s.write(' %10s %10s ' % (str(int(total/10485.76)/100),
-                                         str(int(rate))))
-                if c['is_optimistic_unchoke']:
-                    s.write('*')
-                else:
-                    s.write(' ')
-                if interested:
-                    s.write('i')
-                else:
-                    s.write(' ')
-                if choked:
-                    s.write('c')
-                else:
-                    s.write(' ')
-
-                total, rate, interested, choked, snubbed = c['download']
-                s.write(' %10s %10s ' % (str(int(total/10485.76)/100),
-                                         str(int(rate))))
-                if interested:
-                    s.write('i')
-                else:
-                    s.write(' ')
-                if choked:
-                    s.write('c')
-                else:
-                    s.write(' ')
-                if snubbed:
-                    s.write('s')
-                else:
-                    s.write(' ')
-                s.write('\n')
-            self.log.debug(s.getvalue())
 
     class DL(Feedback):
 

@@ -28,7 +28,7 @@ class MiniAggPlugin(Plugin):
             feed = FeedWrapper(data['feed'], new_entries, self.seen_db)
             if len(feed.entries) > 0:
                 self.feeds.append(feed)
-            self.log.debug("%s fresh entries for feed, %s already seen." % \
+            self.log.info("%s fresh entries for feed, %s already seen." % \
                 ( len(feed.entries), len(feed.seen_entries) ) )
 
     def scan_end(self):
@@ -56,7 +56,7 @@ class MiniAggPlugin(Plugin):
             fout.write(out)
             fout.close()
             
-            self.log.debug("Wrote %s" % fn_out)
+            self.log.info("Wrote out %s" % fn_out)
 
             # Index the news pages and produce nav HTML.
             self.index_news()

@@ -2,6 +2,12 @@ body {
     font: 10px verdana;
     margin: 10px;
 }
+h1 {
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    z-index: 999;
+}
 
 body > h1 {
     position: fixed;
@@ -15,6 +21,7 @@ body > h1 {
 ul.feeds {
     margin-top: 45px;
     padding-left: 10px;
+    z-index: 100;
 }
 
 
