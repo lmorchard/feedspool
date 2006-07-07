@@ -47,14 +47,20 @@ class FeedWrapper:
         return ""
 
     def __str__(self):
-        return self.TMPL_NEWS_FEED % self 
+        try:
+            return self.TMPL_NEWS_FEED % self 
+        except Exception, e:
+            return "Exception! %s" % e
 
 class EntryWrapper:
 
     TMPL_NEWS_ENTRY = TMPL_NEWS_ENTRY
 
     def __str__(self):
-        return self.TMPL_NEWS_ENTRY % self 
+        try:
+            return self.TMPL_NEWS_ENTRY % self 
+        except Exception, e:
+            return "Exception! %s" % e
 
     def __init__(self, feed, entry): 
         """Initialize the wrapper with feed and entry data."""

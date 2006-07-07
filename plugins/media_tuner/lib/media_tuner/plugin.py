@@ -21,7 +21,7 @@ class MediaTunerPlugin(Plugin):
     SHUTDOWN_WAIT        = 20.0
     MAX_DOWNLOADS        = 3
     DOWNLOADS_PATH_TMPL  = \
-        'downloads/%(year)s-%(mon)s-%(mday)s/%(title_path)s'
+        'downloads/%(year)s-%(mon)02d-%(mday)02d/%(title_path)s'
 
     def startup(self):
         self.job_queue = None
@@ -105,8 +105,8 @@ class MediaTunerPlugin(Plugin):
 
         fn_ns  = {
             'title_path': title_path,
-            'year':tm_tup[0], 'mon':tm_tup[1],  'mday':tm_tup[2],
-            'hour':tm_tup[3], 'min':tm_tup[4],  'sec':tm_tup[5],
+            'year':int(tm_tup[0]), 'mon':int(tm_tup[1]),  'mday':int(tm_tup[2]),
+            'hour':int(tm_tup[3]), 'min':int(tm_tup[4]),  'sec':int(tm_tup[5]),
             'wday':tm_tup[6], 'yday':tm_tup[7], 'isdst':tm_tup[8]
         }
 

@@ -7,9 +7,9 @@ on a poll, the polling period is incremented to a bit longer by a given value
 (ie. 30 minutes).
 
 The intended effect is that, when a feed is quiet, the aggregator gradually
-waits longer and longer between checking it.  However, as soon as the feed
-shows any activity, it quickly ramps up in anticipation of more activity in the
-near future.  
+waits longer and longer between polls.  However, as soon as the feed shows any
+activity, it quickly ramps up in anticipation of more activity in the near
+future.  
 
 Over time, this algorithm should naturally settle on a decent guess at a good
 polling period for any given feed.

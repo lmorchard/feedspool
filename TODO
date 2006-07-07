@@ -1,5 +1,7 @@
 TODO
 
+* Split media_tuner and miniagg plugins off into their own small projects
+
 * Upgrade to httplib2 (http://bitworking.org/projects/httplib2/)
 
 * Properly implement subscription removal.  (Delete all associated files?)

@@ -3,12 +3,10 @@ body {
     margin: 10px;
 }
 h1 {
-    position: fixed;
-    left: 0px;
-    top: 0px;
     z-index: 999;
 }
 
+/*
 body > h1 {
     position: fixed;
     width: 100%;
@@ -23,7 +21,11 @@ ul.feeds {
     padding-left: 10px;
     z-index: 100;
 }
+*/
 
+ul.feeds {
+    padding-left: 10px;
+}
 
 ul.newsindex {
     margin: 0 0 15px 0;
