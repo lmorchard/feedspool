@@ -11,6 +11,7 @@ from feedspool import config
 
 # TODO: Parse some things out for subscription metadata? (ie. feed title)
 # TODO: Need entry directory hashing?  Time-based dirs?  Entry deduping probs.
+# TODO: Allow for spooling into virtual filesystem databases
 
 global log
 log  = logging.getLogger("%s"%__name__)

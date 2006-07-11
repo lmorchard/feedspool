@@ -1,5 +1,7 @@
 TODO
 
+* Abstract the spool, to allow for virtual filesystem database spools, indexes, etc
+
 * Split media_tuner and miniagg plugins off into their own small projects
 
 * Upgrade to httplib2 (http://bitworking.org/projects/httplib2/)
