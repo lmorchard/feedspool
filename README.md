@@ -1,8 +1,8 @@
-= FeedSpool =
+# FeedSpool
 
 Simplified syndication feed poller and spooler written in Python.
 
-== Background ==
+## Background
 
 The basic idea of FeedSpool is to handle many of the up-front details of 
 syndication feed aggregation, while being as stupid as possible about the
